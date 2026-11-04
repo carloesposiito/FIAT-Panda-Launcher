@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Panda Launcher</string>
+    <string name="settings_title">Impostazioni launcher</string>
+    <string name="model_missing">Modello 3D non trovato: copia panda.glb in app/src/main/assets/models</string>
+
+    <string name="unit_kmh">km/h</string>
+    <string name="unit_celsius">°C</string>
+    <string name="unit_volt">V</string>
+    <string name="unit_l100">l/100</string>
+    <string name="no_value">—</string>
+
+    <string name="obd_not_configured">OBD da configurare</string>
+    <string name="obd_connecting">OBD: collegamento…</string>
+    <string name="obd_connected">OBD collegato</string>
+    <string name="obd_error">OBD non collegato</string>
+    <string name="obd_err_permission">Manca il permesso Bluetooth</string>
+    <string name="obd_err_bt_off">Bluetooth spento</string>
+    <string name="obd_err_ecu">La centralina non risponde (quadro acceso?)</string>
+
+    <string name="app_open_failed">Impossibile aprire l\'app</string>
+
+    <string name="pref_apps_title">App nella schermata Home</string>
+    <string name="pref_apps_hint">Spunta le app da mostrare nella colonna a sinistra. Compaiono nell\'ordine in cui le spunti.</string>
+    <string name="pref_obd_title">Adattatore OBD</string>
+    <string name="pref_obd_hint">Scegli l\'ELM327 tra i dispositivi Bluetooth già associati. Se non c\'è, associalo prima dalle impostazioni Bluetooth di Android (PIN di solito 1234 o 0000).</string>
+    <string name="pref_obd_none">Nessun adattatore</string>
+    <string name="pref_obd_no_devices">Nessun dispositivo Bluetooth associato.</string>
+    <string name="pref_engine_title">Motore</string>
+    <string name="pref_engine_hint">Serve per stimare il consumo. La cilindrata è sul libretto, alla voce P.1.</string>
+    <string name="pref_engine_11">1.1 Fire (1108 cm³)</string>
+    <string name="pref_engine_12">1.2 Fire (1242 cm³)</string>
+    <string name="pref_engine_14">1.4 16V (1368 cm³)</string>
+    <string name="pref_display_title">Schermata</string>
+    <string name="pref_choose_home">Scegli il launcher predefinito</string>
+    <string name="pref_android_settings">Impostazioni di Android</string>
+    <string name="pref_bt_settings">Impostazioni Bluetooth</string>
+    <string name="pref_grant_permission">Concedi il permesso Bluetooth</string>
+    <string name="pref_need_permission">Per vedere i dispositivi serve il permesso Bluetooth.</string>
+
+    <!-- Home -->
+    <string name="lbl_speed">Velocità</string>
+    <string name="lbl_gear">Marcia</string>
+    <string name="lbl_rpm">Giri motore</string>
+    <string name="lbl_data">Dati auto</string>
+    <string name="lbl_battery">Batteria</string>
+    <string name="lbl_coolant">Liquido motore</string>
+    <string name="lbl_load">Carico motore</string>
+    <string name="lbl_intake">Aria aspirata</string>
+    <string name="lbl_ambient">Temperatura esterna</string>
+    <string name="lbl_fuel">Consumo</string>
+    <string name="lbl_fuel_now">Istantaneo</string>
+    <string name="lbl_fuel_avg">Medio</string>
+    <string name="lbl_minutes_ago">10 min fa</string>
+    <string name="lbl_now">ora</string>
+    <string name="unit_percent">%</string>
+    <string name="unit_l100_km">l/100 km</string>
+    <string name="gear_neutral">Folle</string>
+    <string name="gear_format">%1$dª inserita</string>
+
+    <string name="cd_settings">Impostazioni del launcher</string>
+    <string name="cd_screen_off">Spegni schermo</string>
+    <string name="cd_rotate">Rotazione automatica</string>
+    <string name="cd_warnings">Avvisi e errori</string>
+    <string name="cd_volume_up">Volume più</string>
+    <string name="cd_volume_down">Volume meno</string>
+    <string name="cd_close">Chiudi</string>
+
+    <string name="media_kind">AUDIO</string>
+    <string name="media_idle">Nessun brano in riproduzione</string>
+    <string name="media_need_access">Tocca per consentire la lettura dei brani</string>
+
+    <string name="warn_title">AVVISI E ERRORI</string>
+    <string name="diag_none">Nessun errore</string>
+    <string name="diag_none_sub">Il motore non segnala anomalie.</string>
+    <string name="diag_reading">Lettura in corso…</string>
+    <string name="diag_off">OBD non collegato</string>
+    <string name="diag_clear">Cancella errori</string>
+    <string name="diag_clear_title">Cancellare gli errori?</string>
+    <string name="diag_clear_msg">Cancello tutti i codici dalla centralina. Se il guasto resta, gli errori tornano. Alcuni controlli della centralina si azzerano e possono servire giorni di guida prima della revisione.</string>
+    <string name="diag_clear_confirm">Cancella</string>
+    <string name="diag_clear_cancel">Annulla</string>
+    <string name="diag_clear_refused">Per cancellare gli errori l\'auto deve essere ferma.</string>
+    <string name="diag_clear_sent">Richiesta inviata alla centralina</string>
+    <string name="diag_critical">spia rossa</string>
+    <string name="diag_warning">avviso</string>
+
+    <string name="blank_hint">Tocca lo schermo per riaccenderlo</string>
+</resources>

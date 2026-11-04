@@ -1,0 +1,8 @@
+.gradle/
+.idea/
+*.iml
+local.properties
+build/
+app/build/
+captures/
+tools/genera-modello/node_modules/

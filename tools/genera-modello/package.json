@@ -1,0 +1,8 @@
+{
+  "name": "genera-modello-panda",
+  "private": true,
+  "type": "module",
+  "description": "Genera app/src/main/assets/models/panda.glb (modello provvisorio) dalle forme del prototipo",
+  "scripts": { "genera": "node genera.mjs" },
+  "dependencies": { "three": "0.160.0" }
+}

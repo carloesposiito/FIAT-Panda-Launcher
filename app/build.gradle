@@ -1,0 +1,41 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'it.panda.launcher'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'it.panda.launcher'
+        // Le autoradio Android aftermarket vanno di solito da Android 8 a 13.
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '0.1'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    androidResources {
+        // Il modello 3D si legge più in fretta se non è compresso dentro l'APK.
+        noCompress 'glb'
+    }
+}
+
+dependencies {
+    def filamentVersion = '1.56.0'
+    implementation "com.google.android.filament:filament-android:$filamentVersion"
+    implementation "com.google.android.filament:gltfio-android:$filamentVersion"
+
+    testImplementation 'junit:junit:4.13.2'
+}

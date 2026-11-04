@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Larghezza della colonna di destra (ora, temperatura, dati, consumo) -->
+    <dimen name="side_column">260dp</dimen>
+    <!-- Icona app a sinistra e larghezza della colonna (icona + margine) -->
+    <dimen name="app_icon">56dp</dimen>
+    <dimen name="app_column">80dp</dimen>
+</resources>
