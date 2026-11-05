@@ -52,7 +52,6 @@ import it.panda.launcher.ui.GaugeView;
 import it.panda.launcher.ui.GearShiftView;
 import it.panda.launcher.ui.MetricCellView;
 import it.panda.launcher.ui.SegmentBarView;
-import it.panda.launcher.ui.SparklineView;
 
 /**
  * Schermata Home: app e volume a sinistra; a destra la barra in alto (ora) e le pagine da scorrere
@@ -112,9 +111,7 @@ public class LauncherActivity extends Activity
     private GearShiftView gearShift;
     private GaugeView speedGauge;
     private TextView rpmValue;
-    private SparklineView rpmSpark;
     private SegmentBarView rpmBar;
-    private long lastSparkMs;
     private int maxRpm = 7000;
     private int shiftRpm = 6000;
     private View shiftArrow;
@@ -578,19 +575,18 @@ public class LauncherActivity extends Activity
         speedGauge = findViewById(R.id.speed_gauge);
         speedGauge.setUnit(getString(R.string.unit_kmh));
         rpmValue = findViewById(R.id.rpm_value);
-        rpmSpark = findViewById(R.id.rpm_spark);
         rpmBar = findViewById(R.id.rpm_bar);
         gearShift = findViewById(R.id.gear_shift);
         shiftArrow = findViewById(R.id.shift_arrow);
-        // rpm e marce larghi come l'arco del tachimetro
-        View rpmGroup = findViewById(R.id.rpm_group), gearGroup = findViewById(R.id.gear_group);
-        speedGauge.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
-            int w = Math.round(speedGauge.getArcWidth());
-            for (View group : new View[]{rpmGroup, gearGroup}) {
-                if (w > 0 && group.getLayoutParams().width != w) {
-                    group.getLayoutParams().width = w;
-                    group.requestLayout();
-                }
+        // la freccia sta nel posto vuoto dello schema, alla stessa altezza della 4ª (centro in 74/88, 58/72)
+        gearShift.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            android.widget.FrameLayout.LayoutParams lp = (android.widget.FrameLayout.LayoutParams) shiftArrow.getLayoutParams();
+            int x = Math.round(gearShift.getWidth() * 74f / 88f - lp.width / 2f);
+            int y = Math.round(gearShift.getHeight() * 58f / 72f - lp.height / 2f);
+            if (lp.leftMargin != x || lp.topMargin != y) {
+                lp.leftMargin = x;
+                lp.topMargin = y;
+                shiftArrow.setLayoutParams(lp);
             }
         });
         cellInstantCar = findViewById(R.id.cell_instant_car);
@@ -654,11 +650,6 @@ public class LauncherActivity extends Activity
             rpmValue.setText(String.valueOf(Math.round(s.rpm / 10.0) * 10));
             rpmValue.setTextColor(getColor(s.rpm >= maxRpm * RPM_RED_FROM ? R.color.crit : R.color.text));
             rpmBar.setFraction((float) (s.rpm / maxRpm));
-            long now = SystemClock.uptimeMillis();
-            if (now - lastSparkMs >= 500) {
-                lastSparkMs = now;
-                rpmSpark.add(s.rpm.floatValue());
-            }
         } else {
             showNoRpm();
         }
@@ -792,7 +783,6 @@ public class LauncherActivity extends Activity
         rpmValue.setText(dash());
         rpmValue.setTextColor(getColor(R.color.text));
         rpmBar.setFraction(0);
-        rpmSpark.clear();
     }
 
     /** Fondo scala di tachimetro e contagiri, come scelto nelle impostazioni. */
@@ -801,7 +791,6 @@ public class LauncherActivity extends Activity
         speedGauge.configure(maxSpeed, 0, maxSpeed > 210 ? 40 : 20);
         maxRpm = Prefs.getMaxRpm(this);
         shiftRpm = Prefs.getShiftRpm(this);
-        rpmSpark.setMax(maxRpm);
         rpmBar.setRedFrom(RPM_RED_FROM);
     }
 

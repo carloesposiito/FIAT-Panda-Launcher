@@ -39,6 +39,7 @@ public class MetricCellView extends LinearLayout {
         String labelText = a.getString(R.styleable.MetricCellView_label);
         String unitText = a.getString(R.styleable.MetricCellView_unit);
         int iconIndex = a.getInt(R.styleable.MetricCellView_icon, 0);
+        boolean centered = a.getBoolean(R.styleable.MetricCellView_centered, false);
         boolean accentValue = a.getBoolean(R.styleable.MetricCellView_accent, false);
         int iconPx = a.getDimensionPixelSize(R.styleable.MetricCellView_iconSize, Math.round((large ? 40 : 24) * d));
         a.recycle();
@@ -85,6 +86,10 @@ public class MetricCellView extends LinearLayout {
         LinearLayout row = new LinearLayout(context);
         row.setOrientation(HORIZONTAL);
         row.setBaselineAligned(true);
+        if (centered) {
+            row.setGravity(Gravity.CENTER_HORIZONTAL);
+            label.setGravity(Gravity.CENTER_HORIZONTAL);
+        }
         texts.addView(row);
         row.addView(value);
         row.addView(unit);

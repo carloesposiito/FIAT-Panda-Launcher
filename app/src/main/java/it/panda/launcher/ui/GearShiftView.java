@@ -56,6 +56,17 @@ public class GearShiftView extends View {
         text.setTextSize(15f);
     }
 
+    /** L'altezza segue la larghezza (proporzioni del disegno) quando non è fissata dal layout. */
+    @Override
+    protected void onMeasure(int widthSpec, int heightSpec) {
+        int w = MeasureSpec.getSize(widthSpec);
+        if (MeasureSpec.getMode(heightSpec) != MeasureSpec.EXACTLY && MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
+            setMeasuredDimension(w, Math.round(w * H / W));
+        } else {
+            super.onMeasure(widthSpec, heightSpec);
+        }
+    }
+
     public void setGear(Integer gear) {
         if (!java.util.Objects.equals(gear, this.gear)) {
             this.gear = gear;

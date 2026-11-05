@@ -16,6 +16,8 @@
         </attr>
         <!-- valore in ambra (es. consumo istantaneo) -->
         <attr name="accent" format="boolean" />
+        <!-- etichetta, valore e unità centrati (senza icona) -->
+        <attr name="centered" format="boolean" />
         <!-- versione grande, per la pagina dell'auto e per Consumi -->
         <attr name="large" format="boolean" />
         <!-- lato dell'icona -->

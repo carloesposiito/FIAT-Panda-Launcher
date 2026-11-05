@@ -158,46 +158,36 @@
                 <LinearLayout
                     android:id="@+id/tiles_left"
                     android:layout_width="212dp"
-                    android:foreground="@drawable/debug_border_red"
                     android:layout_height="match_parent"
                     android:layout_marginStart="12dp"
                     android:layout_marginTop="10dp"
                     android:layout_marginBottom="22dp"
+                    android:gravity="center_vertical"
                     android:orientation="vertical">
 
                     <!-- tachimetro piccolo -->
-                    <FrameLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:foreground="@drawable/debug_border_cyan"
-                        android:layout_weight="1"
-                        android:padding="4dp">
-
-                        <it.panda.launcher.ui.GaugeView
-                            android:id="@+id/speed_gauge"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent" />
-                    </FrameLayout>
+                    <!-- 152dp di larghezza = arco di 150dp: giri, marce e consumo sono larghi uguale -->
+                    <it.panda.launcher.ui.GaugeView
+                        android:id="@+id/speed_gauge"
+                        android:layout_width="152dp"
+                        android:layout_height="122dp"
+                        android:layout_gravity="center_horizontal" />
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginStart="8dp"
+                        android:layout_marginTop="18dp"
                         android:layout_marginEnd="8dp"
+                        android:layout_marginBottom="20dp"
                         android:background="@color/line_strong" />
 
                     <!-- giri: numero, grafico degli ultimi secondi e barra a tacche; largo quanto l'arco del tachimetro -->
-                    <FrameLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1">
-
-                        <LinearLayout
+                    <LinearLayout
                             android:id="@+id/rpm_group"
-                            android:layout_width="140dp"
+                            android:layout_width="150dp"
                             android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:foreground="@drawable/debug_border_cyan"
+                            android:layout_gravity="center_horizontal"
                             android:orientation="vertical">
 
                             <LinearLayout
@@ -219,67 +209,68 @@
                                     android:text="@string/unit_rpm" />
                             </LinearLayout>
 
-                            <it.panda.launcher.ui.SparklineView
-                                android:id="@+id/rpm_spark"
-                                android:layout_width="match_parent"
-                                android:layout_height="40dp"
-                                android:layout_marginTop="6dp" />
-
                             <it.panda.launcher.ui.SegmentBarView
                                 android:id="@+id/rpm_bar"
                                 android:layout_width="match_parent"
                                 android:layout_height="10dp"
                                 android:layout_marginTop="6dp" />
                         </LinearLayout>
-                    </FrameLayout>
 
-                    <!-- marce: schema del cambio, con la freccia "cambia marcia" sul lato destro -->
-                    <FrameLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1">
-
+                        <!-- marce: schema del cambio, con la freccia "cambia marcia" sul lato destro -->
                         <FrameLayout
                             android:id="@+id/gear_group"
-                            android:layout_width="140dp"
-                            android:layout_height="match_parent"
+                            android:layout_width="150dp"
+                            android:layout_height="wrap_content"
                             android:layout_gravity="center_horizontal"
-                            android:foreground="@drawable/debug_border_cyan">
+                            android:layout_marginTop="20dp">
 
                             <it.panda.launcher.ui.GearShiftView
                                 android:id="@+id/gear_shift"
                                 android:layout_width="match_parent"
-                                android:layout_height="match_parent"
+                                android:layout_height="wrap_content"
                                 android:contentDescription="@string/unit_gear" />
 
                             <ImageView
                                 android:id="@+id/shift_arrow"
                                 android:layout_width="28dp"
                                 android:layout_height="28dp"
-                                android:layout_gravity="end|bottom"
+                                android:layout_gravity="top|start"
                                 android:contentDescription="@string/shift_up"
                                 android:src="@drawable/ic_shift_up"
                                 android:visibility="gone" />
                         </FrameLayout>
-                    </FrameLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginStart="8dp"
+                        android:layout_marginTop="20dp"
                         android:layout_marginEnd="8dp"
+                        android:layout_marginBottom="18dp"
                         android:background="@color/line_strong" />
 
-                    <it.panda.launcher.ui.MetricCellView
-                        android:id="@+id/cell_instant_car"
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:foreground="@drawable/debug_border_cyan"
-                        android:layout_weight="1"
-                        android:background="@android:color/transparent"
-                        app:label="@string/label_instant"
-                        app:large="true"
-                        app:unit="@string/unit_l100" />
+                    <!-- consumo istantaneo: largo quanto l'arco del tachimetro, come giri e marce -->
+                        <LinearLayout
+                            android:id="@+id/instant_group"
+                            android:layout_width="150dp"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_horizontal"
+                            android:orientation="vertical">
+
+                            <it.panda.launcher.ui.MetricCellView
+                                android:id="@+id/cell_instant_car"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="@android:color/transparent"
+                                android:paddingStart="4dp"
+                                android:paddingTop="0dp"
+                                android:paddingEnd="4dp"
+                                android:paddingBottom="0dp"
+                                app:centered="true"
+                                app:label="@string/label_instant_consumption"
+                                app:large="true"
+                                app:unit="@string/unit_l100" />
+                        </LinearLayout>
 
                 </LinearLayout>
 
@@ -291,8 +282,7 @@
                     android:layout_gravity="start"
                     android:layout_marginStart="237dp"
                     android:layout_marginTop="10dp"
-                    android:layout_marginBottom="22dp"
-                    android:foreground="@drawable/debug_border_white">
+                    android:layout_marginBottom="22dp">
 
                     <ImageView
                         android:id="@+id/car_image"
@@ -303,7 +293,6 @@
                         android:layout_marginEnd="14dp"
                         android:layout_marginBottom="98dp"
                         android:contentDescription="@string/app_name"
-                        android:foreground="@drawable/debug_border_green"
                         android:scaleType="fitStart"
                         android:src="@drawable/car_panda" />
 
@@ -316,7 +305,6 @@
                         android:layout_marginTop="104dp"
                         android:background="@android:color/transparent"
                         android:contentDescription="@string/label_battery"
-                        android:foreground="@drawable/debug_border_yellow"
                         android:paddingStart="8dp"
                         android:paddingEnd="4dp"
                         app:icon="battery"
@@ -333,7 +321,6 @@
                         android:layout_marginTop="24dp"
                         android:background="@android:color/transparent"
                         android:contentDescription="@string/label_coolant"
-                        android:foreground="@drawable/debug_border_yellow"
                         android:paddingStart="8dp"
                         android:paddingEnd="4dp"
                         app:icon="water"
@@ -350,7 +337,6 @@
                         android:layout_marginBottom="24dp"
                         android:background="@android:color/transparent"
                         android:contentDescription="@string/label_fuel"
-                        android:foreground="@drawable/debug_border_yellow"
                         android:paddingStart="8dp"
                         android:paddingEnd="4dp"
                         app:icon="fuel"
@@ -367,7 +353,6 @@
                         android:layout_marginBottom="24dp"
                         android:background="@android:color/transparent"
                         android:contentDescription="@string/label_oil"
-                        android:foreground="@drawable/debug_border_yellow"
                         android:paddingStart="8dp"
                         android:paddingEnd="4dp"
                         app:icon="oil"

@@ -105,11 +105,6 @@ public class GaugeView extends View {
         postInvalidateOnAnimation();
     }
 
-    /** Larghezza dell'arco disegnato (px), così altri controlli si allineano al tachimetro. */
-    public float getArcWidth() {
-        return getWidth() > 0 ? 2 * measureArc() + track.getStrokeWidth() : 0f;
-    }
-
     /** Imposta testi e spessori in base alla vista e restituisce il raggio dell'arco. */
     private float measureArc() {
         // testo e spessore proporzionati allo strumento (stessa misura per tachimetro e contagiri)

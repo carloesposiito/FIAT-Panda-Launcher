@@ -82,6 +82,7 @@
     <string name="label_intake">Aria aspirata</string>
     <string name="label_load">Carico motore</string>
     <string name="label_instant">Istantaneo</string>
+    <string name="label_instant_consumption">Consumo istantaneo</string>
     <string name="label_average">Medio</string>
     <string name="label_distance">Distanza</string>
     <string name="label_time">Tempo</string>
