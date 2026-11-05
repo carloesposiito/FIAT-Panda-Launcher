@@ -38,12 +38,6 @@
             android:background="@color/line" />
 
         <ImageButton
-            android:id="@+id/screen_off_button"
-            style="@style/ColumnButton"
-            android:contentDescription="@string/screen_off"
-            android:src="@drawable/ic_round_screen_off" />
-
-        <ImageButton
             android:id="@+id/settings_button"
             style="@style/ColumnButton"
             android:contentDescription="@string/settings_button"
@@ -58,31 +52,7 @@
             android:layout_marginBottom="5dp"
             android:background="@color/line" />
 
-        <!-- volume: valore in un cerchio grigio traslucido (solo lettura), poi − e + (tenendo premuto si ripete) -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/app_cell">
-
-            <LinearLayout
-                android:layout_width="@dimen/app_icon"
-                android:layout_height="@dimen/app_icon"
-                android:layout_gravity="center"
-                android:background="@drawable/bg_volume_value"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/volume_value"
-                    style="@style/TileValue"
-                    android:alpha="0.75"
-                    android:gravity="center"
-                    android:includeFontPadding="false"
-                    android:text="@string/no_value"
-                    android:textColor="@color/muted"
-                    android:textSize="28sp" />
-            </LinearLayout>
-        </FrameLayout>
-
+        <!-- volume: − e + (tenendo premuto si ripete, sempre più veloce) -->
         <ImageButton
             android:id="@+id/volume_down"
             style="@style/ColumnButton"

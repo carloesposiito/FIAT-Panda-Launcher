@@ -323,20 +323,11 @@ public class SettingsActivity extends Activity {
 
     private void buildDisplaySection() {
         addTitle(R.string.pref_display_title);
-        boolean lock = ScreenLock.isAllowed(this);
-        TextView lockState = addHintText(getString(lock ? R.string.pref_lock_on : R.string.pref_lock_off));
-        lockState.setPadding(0, dp(8), 0, dp(4));
-        if (lock) {
-            Button revoke = addButton(R.string.pref_lock_revoke);
-            revoke.setOnClickListener(v -> {
-                ScreenLock.revoke(this);
-                content.postDelayed(this::build, 600); // Android toglie l'autorizzazione con un attimo di ritardo
-            });
-            addHint(R.string.pref_lock_revoke_hint);
-        }
-
         addSwitch(R.string.pref_car_data, Prefs.getCarData(this), checked -> Prefs.setCarData(this, checked));
         addHint(R.string.pref_car_data_hint);
+
+        addSwitch(R.string.pref_shift_lights, Prefs.getShiftLights(this), checked -> Prefs.setShiftLights(this, checked));
+        addHint(R.string.pref_shift_lights_hint);
 
         addSwitch(R.string.pref_borders, Prefs.getDebugBorders(this), checked -> Prefs.setDebugBorders(this, checked));
         addHint(R.string.pref_borders_hint);

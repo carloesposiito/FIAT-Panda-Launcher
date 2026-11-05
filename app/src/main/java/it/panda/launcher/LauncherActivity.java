@@ -70,7 +70,6 @@ public class LauncherActivity extends Activity
 
     // volume
     private AudioManager audio;
-    private TextView volumeValue;
 
     // pagine
     private static final int PAGE_CAR = 0, PAGE_TRIP = 1, PAGE_NAV = 2, PAGE_ALERTS = 3;
@@ -108,6 +107,7 @@ public class LauncherActivity extends Activity
     private GearShiftView gearShift;
     private GaugeView speedGauge;
     private int shiftRpm = 6000, redRpm = 6500;
+    private boolean shiftLightsOn = true;
     private android.widget.ImageView shiftArrow;
     private MetricCellView cellInstantCar;
     private MetricCellView cellCoolant, cellOil, cellBattery, cellFuel;
@@ -132,14 +132,6 @@ public class LauncherActivity extends Activity
         @Override
         public void onReceive(Context context, Intent intent) {
             loadApps();
-        }
-    };
-
-    /** Il volume è cambiato (anche dai tasti fisici o dal volante). */
-    private final BroadcastReceiver volumeReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            updateVolume();
         }
     };
 
@@ -187,8 +179,6 @@ public class LauncherActivity extends Activity
             }
         });
 
-        // TODO: tasto screen_off_button senza funzione finché non si sa come spegnere davvero lo schermo
-        // (ScreenLock.lockOrAsk(this) lo bloccherebbe soltanto)
         findViewById(R.id.settings_button).setOnClickListener(
                 v -> startActivity(new Intent(this, SettingsActivity.class)));
 
@@ -277,22 +267,21 @@ public class LauncherActivity extends Activity
     // ================================================================ volume
 
     private void setupVolume() {
-        volumeValue = findViewById(R.id.volume_value);
         audio = (AudioManager) getSystemService(AUDIO_SERVICE);
         setupRepeat(findViewById(R.id.volume_down), AudioManager.ADJUST_LOWER);
         setupRepeat(findViewById(R.id.volume_up), AudioManager.ADJUST_RAISE);
-        register(volumeReceiver, new IntentFilter("android.media.VOLUME_CHANGED_ACTION"));
-        updateVolume();
     }
 
-    /** Tocco: un passo. Tenendo premuto: dopo 400 ms un passo ogni 120 ms finché non si lascia. */
+    /** Tocco: un passo. Tenendo premuto: dopo 350 ms un passo ogni 110 ms, che diventa ogni 50 ms dopo 8 passi. */
     @SuppressWarnings("ClickableViewAccessibility")
     private void setupRepeat(View button, int direction) {
+        int[] steps = {0};
         Runnable repeat = new Runnable() {
             @Override
             public void run() {
                 changeVolume(direction);
-                button.postDelayed(this, 120);
+                steps[0]++;
+                button.postDelayed(this, steps[0] < 8 ? 110 : 50);
             }
         };
         button.setOnClickListener(v -> {
@@ -302,8 +291,9 @@ public class LauncherActivity extends Activity
             switch (e.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     v.setPressed(true);
+                    steps[0] = 0; // riparte dai passi lenti
                     changeVolume(direction);
-                    v.postDelayed(repeat, 400);
+                    v.postDelayed(repeat, 350);
                     return true;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
@@ -318,11 +308,6 @@ public class LauncherActivity extends Activity
 
     private void changeVolume(int direction) {
         audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, direction, 0);
-        updateVolume();
-    }
-
-    private void updateVolume() {
-        volumeValue.setText(String.valueOf(audio.getStreamVolume(AudioManager.STREAM_MUSIC)));
     }
 
     // ================================================================ pagine
@@ -651,7 +636,7 @@ public class LauncherActivity extends Activity
         shiftArrow.setColorFilter(getColor(over ? R.color.crit : R.color.accent));
         shiftArrow.setVisibility(shift || over ? View.VISIBLE : View.GONE);
         // luci di cambio marcia: si accendono da 2500 giri fino al massimo
-        shiftLights.setFraction(s.rpm == null ? 0f : (float) ((s.rpm - 2500.0) / Math.max(1, redRpm - 2500)));
+        shiftLights.setFraction(s.rpm == null || !shiftLightsOn ? 0f : (float) ((s.rpm - 2500.0) / Math.max(1, redRpm - 2500)));
 
 
         // dati auto: icona colorata e riempita in base al valore
@@ -784,6 +769,10 @@ public class LauncherActivity extends Activity
         speedGauge.configure(maxSpeed, 0, maxSpeed > 210 ? 40 : 20);
         shiftRpm = Prefs.getShiftRpm(this);
         redRpm = Prefs.getRedRpm(this);
+        shiftLightsOn = Prefs.getShiftLights(this);
+        if (!shiftLightsOn) {
+            shiftLights.setFraction(0f);
+        }
     }
 
     /** Contorni colorati dei blocchi della Home (impostazione "Mostra i bordi"). */
@@ -984,7 +973,6 @@ public class LauncherActivity extends Activity
         } else if (demo) {
             stopDemo();
         }
-        updateVolume();
         updateDate();
         fillAppColumn(); // le app scelte possono essere cambiate nelle impostazioni
         lastHistory = obd.consumptionHistory();
@@ -1011,7 +999,6 @@ public class LauncherActivity extends Activity
     @Override
     protected void onDestroy() {
         unregisterReceiver(packageReceiver);
-        unregisterReceiver(volumeReceiver);
         unregisterReceiver(timeReceiver);
         appLoader.shutdown();
         obd.stop();
@@ -1037,15 +1024,6 @@ public class LauncherActivity extends Activity
     @Override
     public void onBackPressed() {
         // è la schermata Home: "indietro" non deve chiuderla
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        // autorizzazione appena concessa: si blocca subito, come voleva il tocco
-        if (requestCode == ScreenLock.REQUEST_ADMIN && ScreenLock.isAllowed(this)) {
-            ScreenLock.lockNow(this);
-        }
     }
 
     @Override

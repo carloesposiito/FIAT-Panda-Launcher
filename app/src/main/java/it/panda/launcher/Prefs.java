@@ -24,6 +24,7 @@ public final class Prefs {
     private static final String KEY_DEMO = "demo_data";
     private static final String KEY_CAR_DATA = "car_data";
     private static final String KEY_BORDERS = "debug_borders";
+    private static final String KEY_SHIFT_LIGHTS = "shift_lights";
     private static final String KEY_MAX_SPEED = "max_speed";
     private static final String KEY_RED_RPM = "red_rpm";
     private static final String KEY_SHIFT_RPM = "shift_rpm";
@@ -89,6 +90,15 @@ public final class Prefs {
 
     public static void setCarData(Context c, boolean on) {
         sp(c).edit().putBoolean(KEY_CAR_DATA, on).apply();
+    }
+
+    /** Barra di luci sotto data e ora che si accende con i giri; spenta resta grigia, come a giri zero. */
+    public static boolean getShiftLights(Context c) {
+        return sp(c).getBoolean(KEY_SHIFT_LIGHTS, true);
+    }
+
+    public static void setShiftLights(Context c, boolean on) {
+        sp(c).edit().putBoolean(KEY_SHIFT_LIGHTS, on).apply();
     }
 
     /** Contorni colorati attorno ai blocchi della Home, per vedere gli spazi. */

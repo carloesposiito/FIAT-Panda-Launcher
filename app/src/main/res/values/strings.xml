@@ -4,13 +4,8 @@
     <string name="settings_title">Impostazioni launcher</string>
 
     <!-- colonna app -->
-    <string name="screen_off">Spegni lo schermo</string>
     <string name="lock_admin_explanation">Serve solo per bloccare e spegnere lo schermo con il tasto in fondo alla colonna delle app.</string>
     <string name="lock_unavailable">Questa autoradio non permette di bloccare lo schermo.</string>
-    <string name="pref_lock_on">Blocco schermo: autorizzato</string>
-    <string name="pref_lock_off">Blocco schermo: non ancora autorizzato (si chiede al primo uso del tasto)</string>
-    <string name="pref_lock_revoke">Togli l\'autorizzazione al blocco schermo</string>
-    <string name="pref_lock_revoke_hint">Va tolta prima di disinstallare il launcher: finché è attiva Android non lo lascia disinstallare.</string>
     <string name="settings_button">Impostazioni launcher</string>
     <string name="app_open_failed">Impossibile aprire l\'app</string>
 
@@ -56,6 +51,8 @@
     <string name="shift_up">cambia marcia</string>
     <string name="pref_car_data">Dati attorno all\'auto</string>
     <string name="pref_car_data_hint">Acqua, batteria, olio e carburante con le linee che partono dall\'auto. Spegnili per lasciare solo la foto.</string>
+    <string name="pref_shift_lights">Barra colorata sotto data e ora</string>
+    <string name="pref_shift_lights_hint">Si accende con i giri motore. Spenta, resta grigia come a giri zero.</string>
     <string name="pref_borders">Mostra i bordi dei blocchi</string>
     <string name="pref_borders_hint">Contorni colorati attorno a colonna dei dati, zona dell\'auto, foto e riquadri, per controllare gli spazi.</string>
     <string name="pref_demo">Dati dimostrativi</string>
