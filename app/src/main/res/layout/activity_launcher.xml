@@ -108,20 +108,18 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
-        <!-- Barra in alto: data a sinistra, ora a destra -->
+        <!-- Barra in alto, senza sfondo: data a sinistra, ora a destra; sotto un separatore -->
         <LinearLayout
-            style="@style/Tile"
             android:layout_width="match_parent"
-            android:layout_height="68dp"
-            android:layout_marginStart="12dp"
+            android:layout_height="74dp"
+            android:baselineAligned="true"
+            android:layout_marginStart="25dp"
             android:layout_marginTop="10dp"
-            android:layout_marginEnd="12dp"
-            android:gravity="center_vertical"
+            android:layout_marginEnd="36.5dp"
+            android:gravity="bottom"
             android:orientation="horizontal"
-            android:paddingStart="20dp"
-            android:paddingTop="6dp"
-            android:paddingEnd="20dp"
-            android:paddingBottom="6dp">
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
 
             <!-- giorno e data a sinistra, ora a destra -->
             <TextView
@@ -131,7 +129,7 @@
                 android:layout_weight="1"
                 android:includeFontPadding="false"
                 android:singleLine="true"
-                android:textSize="33sp" />
+                android:textSize="38sp" />
 
             <TextClock
                 android:id="@+id/clock"
@@ -139,8 +137,16 @@
                 android:format12Hour="HH:mm"
                 android:format24Hour="HH:mm"
                 android:includeFontPadding="false"
-                android:textSize="36sp" />
+                android:textSize="60sp" />
         </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginStart="25dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="36.5dp"
+            android:background="@color/line_strong" />
 
         <!-- ===== Pagine: se ne vede una alla volta ===== -->
         <FrameLayout
@@ -160,9 +166,10 @@
                     android:layout_width="212dp"
                     android:layout_height="match_parent"
                     android:layout_marginStart="25dp"
-                    android:layout_marginTop="62dp"
+                    android:layout_marginTop="39dp"
                     android:layout_marginBottom="22dp"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:paddingTop="12dp">
 
                     <!-- tachimetro piccolo -->
                     <!-- 152dp di larghezza = arco di 150dp: giri, marce e consumo sono larghi uguale -->
@@ -245,7 +252,7 @@
                     android:layout_height="match_parent"
                     android:layout_gravity="start"
                     android:layout_marginStart="237dp"
-                    android:layout_marginTop="50dp"
+                    android:layout_marginTop="39dp"
                     android:layout_marginBottom="22dp">
 
                     <!-- foto e fila di dati una sotto l'altra: la fila sta a 2,5dp dal bordo della foto -->
@@ -266,6 +273,7 @@
 
                         <!-- dati in una fila in basso, da davanti a dietro -->
                         <LinearLayout
+                            android:id="@+id/car_data_row"
                             android:layout_width="542dp"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center_horizontal"

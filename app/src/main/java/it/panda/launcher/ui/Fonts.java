@@ -9,10 +9,11 @@ import android.widget.TextView;
 /**
  * Carattere del cruscotto: Barlow Condensed (licenza OFL, in assets/fonts).
  * Medium per etichette e testi, Bold per i valori. Se il file manca si usa il condensed di sistema.
+ * Data e ora usano Chakra Petch Bold (OFL), più squadrato e sportivo.
  */
 public final class Fonts {
 
-    private static Typeface regular, bold;
+    private static Typeface regular, bold, display;
 
     private Fonts() {
     }
@@ -31,6 +32,14 @@ public final class Fonts {
         return bold;
     }
 
+    /** Carattere di data e ora. */
+    public static synchronized Typeface display(Context c) {
+        if (display == null) {
+            display = load(c, "fonts/ChakraPetch-Bold.ttf", Typeface.BOLD);
+        }
+        return display;
+    }
+
     private static Typeface load(Context c, String path, int style) {
         try {
             return Typeface.createFromAsset(c.getAssets(), path);
@@ -45,7 +54,7 @@ public final class Fonts {
             TextView t = (TextView) root;
             Context c = t.getContext();
             Typeface current = t.getTypeface();
-            if (current != bold(c) && current != regular(c)) {
+            if (current != bold(c) && current != regular(c) && current != display(c)) {
                 t.setTypeface(current != null && current.isBold() ? bold(c) : regular(c));
             }
         } else if (root instanceof ViewGroup) {

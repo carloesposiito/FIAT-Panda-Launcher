@@ -407,9 +407,7 @@ public class LauncherActivity extends Activity
         pageDots.setVisibility(available > 1 ? View.VISIBLE : View.GONE);
         tilesLeft.setVisibility(obdEnabled || demo ? View.VISIBLE : View.GONE);
         boolean showCarData = Prefs.getCarData(this) && (obdEnabled || demo);
-        for (View label : new View[]{cellBattery, cellCoolant, cellFuel, cellOil}) {
-            label.setVisibility(showCarData ? View.VISIBLE : View.GONE);
-        }
+        findViewById(R.id.car_data_row).setVisibility(showCarData ? View.VISIBLE : View.GONE); // con i separatori
 
         int saved = Math.max(0, Math.min(pages.length - 1, Prefs.getPage(this)));
         int wanted = isAvailable(saved) ? saved : PAGE_CAR;
@@ -549,6 +547,8 @@ public class LauncherActivity extends Activity
 
     private void setupClock() {
         date = findViewById(R.id.date);
+        date.setTypeface(Fonts.display(this));
+        ((TextView) findViewById(R.id.clock)).setTypeface(Fonts.display(this));
         IntentFilter f = new IntentFilter();
         f.addAction(Intent.ACTION_TIME_TICK);
         f.addAction(Intent.ACTION_TIME_CHANGED);
