@@ -89,7 +89,7 @@ public class GaugeView extends View {
     protected void onDraw(Canvas canvas) {
         // testo e spessore proporzionati allo strumento (stessa misura per tachimetro e contagiri)
         float base = Math.min(getWidth() / 2f, getHeight() / 1.75f);
-        number.setTextSize(base * 0.46f);
+        number.setTextSize(base * 0.72f);
         unit.setTextSize(Math.max(10 * density, base * 0.17f));
         track.setStrokeWidth(Math.max(4 * density, base * 0.085f));
         red.setStrokeWidth(track.getStrokeWidth());

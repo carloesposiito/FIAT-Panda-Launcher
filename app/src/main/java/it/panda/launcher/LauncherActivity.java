@@ -46,6 +46,7 @@ import it.panda.launcher.obd.ObdManager;
 import it.panda.launcher.obd.ObdSnapshot;
 import it.panda.launcher.obd.TripComputer;
 import it.panda.launcher.ui.ConsumptionChartView;
+import it.panda.launcher.ui.CalloutLinesView;
 import it.panda.launcher.ui.Fonts;
 import it.panda.launcher.ui.GaugeView;
 import it.panda.launcher.ui.GearShiftView;
@@ -99,7 +100,7 @@ public class LauncherActivity extends Activity
     private String navArrowShown;
 
     // dati ai lati della foto dell'auto
-    private View tilesLeft, tilesRight;
+    private View tilesLeft;
 
     // ora
     private TextView date;
@@ -412,7 +413,9 @@ public class LauncherActivity extends Activity
         }
         pageDots.setVisibility(available > 1 ? View.VISIBLE : View.GONE);
         tilesLeft.setVisibility(obdEnabled || demo ? View.VISIBLE : View.GONE);
-        tilesRight.setVisibility(obdEnabled || demo ? View.VISIBLE : View.GONE);
+        for (View label : new View[]{cellBattery, cellCoolant, cellFuel, cellOil}) {
+            label.setVisibility(obdEnabled || demo ? View.VISIBLE : View.GONE);
+        }
 
         int saved = Math.max(0, Math.min(pages.length - 1, Prefs.getPage(this)));
         int wanted = isAvailable(saved) ? saved : PAGE_CAR;
@@ -570,7 +573,6 @@ public class LauncherActivity extends Activity
 
     private void setupData() {
         tilesLeft = findViewById(R.id.tiles_left);
-        tilesRight = findViewById(R.id.tiles_right);
         speedGauge = findViewById(R.id.speed_gauge);
         speedGauge.setUnit(getString(R.string.unit_kmh));
         rpmValue = findViewById(R.id.rpm_value);
@@ -582,6 +584,12 @@ public class LauncherActivity extends Activity
         cellOil = findViewById(R.id.cell_oil);
         cellBattery = findViewById(R.id.cell_battery);
         cellFuel = findViewById(R.id.cell_fuel);
+        // punto di ogni dato sulla foto (frazioni dell'immagine): batteria e acqua sotto il cofano,
+        // serbatoio sul fianco posteriore, olio in basso davanti
+        ((CalloutLinesView) findViewById(R.id.callouts)).setup(findViewById(R.id.car_image),
+                new View[]{cellBattery, cellCoolant, cellFuel, cellOil},
+                new float[][]{{0.30f, 0.42f}, {0.37f, 0.38f}, {0.94f, 0.52f}, {0.24f, 0.72f}},
+                new boolean[]{true, true, false, false});
         for (MetricCellView c : new MetricCellView[]{cellInstantCar, cellCoolant, cellOil, cellBattery, cellFuel}) {
             c.clear();
         }
