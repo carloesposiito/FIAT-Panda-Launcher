@@ -22,7 +22,6 @@
 
     <!-- auto -->
     <string name="unit_kmh">km/h</string>
-    <string name="unit_rpm">rpm</string>
     <string name="neutral">N</string>
     <string name="unit_gear">marcia</string>
     <string name="chart_caption">Consumo l/100 km · ultima mezz\'ora</string>
@@ -50,11 +49,15 @@
     <string name="alerts_title">Avvisi e diagnosi</string>
     <string name="alerts_none">Nessun avviso: spia motore spenta e nessun codice di errore.</string>
     <string name="pref_gauges_title">Strumenti</string>
-    <string name="pref_gauges_hint">Fondo scala di tachimetro e contagiri: impostalo uguale a quello dell\'auto, così gli strumenti corrispondono.</string>
+    <string name="pref_gauges_hint">Fondo scala del tachimetro: impostalo uguale a quello dell\'auto. La freccia "cambia marcia" compare ai giri indicati e diventa rossa oltre il massimo.</string>
     <string name="pref_max_speed">Fondo scala tachimetro</string>
-    <string name="pref_max_rpm">Fondo scala contagiri</string>
     <string name="pref_shift_rpm">Giri per cambiare marcia</string>
+    <string name="pref_red_rpm">Giri massimi (freccia rossa)</string>
     <string name="shift_up">cambia marcia</string>
+    <string name="pref_car_data">Dati attorno all\'auto</string>
+    <string name="pref_car_data_hint">Acqua, batteria, olio e carburante con le linee che partono dall\'auto. Spegnili per lasciare solo la foto.</string>
+    <string name="pref_borders">Mostra i bordi dei blocchi</string>
+    <string name="pref_borders_hint">Contorni colorati attorno a colonna dei dati, zona dell\'auto, foto e riquadri, per controllare gli spazi.</string>
     <string name="pref_demo">Dati dimostrativi</string>
     <string name="pref_demo_hint">Mostra valori finti nella Home, anche senza OBD, per provare la grafica. Spegnili per usare i dati reali.</string>
     <string name="alerts_read">Leggi allarmi</string>

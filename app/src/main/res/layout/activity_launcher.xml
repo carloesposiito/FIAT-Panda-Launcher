@@ -159,7 +159,7 @@
                     android:id="@+id/tiles_left"
                     android:layout_width="212dp"
                     android:layout_height="match_parent"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="25dp"
                     android:layout_marginTop="10dp"
                     android:layout_marginBottom="22dp"
                     android:gravity="center_vertical"
@@ -182,47 +182,12 @@
                         android:layout_marginBottom="20dp"
                         android:background="@color/line_strong" />
 
-                    <!-- giri: numero, grafico degli ultimi secondi e barra a tacche; largo quanto l'arco del tachimetro -->
-                    <LinearLayout
-                            android:id="@+id/rpm_group"
-                            android:layout_width="150dp"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center_horizontal"
-                            android:orientation="vertical">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:gravity="center_horizontal"
-                                android:orientation="horizontal">
-
-                                <TextView
-                                    android:id="@+id/rpm_value"
-                                    style="@style/TileValue"
-                                    android:includeFontPadding="false"
-                                    android:text="@string/no_value"
-                                    android:textSize="30sp" />
-
-                                <TextView
-                                    style="@style/TileUnit"
-                                    android:layout_gravity="bottom"
-                                    android:text="@string/unit_rpm" />
-                            </LinearLayout>
-
-                            <it.panda.launcher.ui.SegmentBarView
-                                android:id="@+id/rpm_bar"
-                                android:layout_width="match_parent"
-                                android:layout_height="10dp"
-                                android:layout_marginTop="6dp" />
-                        </LinearLayout>
-
                         <!-- marce: schema del cambio, con la freccia "cambia marcia" sul lato destro -->
                         <FrameLayout
                             android:id="@+id/gear_group"
                             android:layout_width="150dp"
                             android:layout_height="wrap_content"
-                            android:layout_gravity="center_horizontal"
-                            android:layout_marginTop="20dp">
+                            android:layout_gravity="center_horizontal">
 
                             <it.panda.launcher.ui.GearShiftView
                                 android:id="@+id/gear_shift"
@@ -303,12 +268,13 @@
                         android:layout_gravity="top|start"
                         android:layout_marginStart="14dp"
                         android:layout_marginTop="104dp"
-                        android:background="@android:color/transparent"
+                        android:background="@drawable/bg_cell_translucent"
                         android:contentDescription="@string/label_battery"
-                        android:paddingStart="8dp"
-                        android:paddingEnd="4dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="14dp"
+                        app:alignEnd="true"
                         app:icon="battery"
-                        app:iconSize="52dp"
+                        app:iconSize="40dp"
                         app:large="true"
                         app:unit="@string/unit_volt" />
 
@@ -319,12 +285,13 @@
                         android:layout_gravity="top|start"
                         android:layout_marginStart="14dp"
                         android:layout_marginTop="24dp"
-                        android:background="@android:color/transparent"
+                        android:background="@drawable/bg_cell_translucent"
                         android:contentDescription="@string/label_coolant"
-                        android:paddingStart="8dp"
-                        android:paddingEnd="4dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="14dp"
+                        app:alignEnd="true"
                         app:icon="water"
-                        app:iconSize="52dp"
+                        app:iconSize="40dp"
                         app:large="true"
                         app:unit="@string/unit_celsius" />
 
@@ -335,12 +302,13 @@
                         android:layout_gravity="bottom|start"
                         android:layout_marginStart="358dp"
                         android:layout_marginBottom="24dp"
-                        android:background="@android:color/transparent"
+                        android:background="@drawable/bg_cell_translucent"
                         android:contentDescription="@string/label_fuel"
-                        android:paddingStart="8dp"
-                        android:paddingEnd="4dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="14dp"
+                        app:alignEnd="true"
                         app:icon="fuel"
-                        app:iconSize="52dp"
+                        app:iconSize="40dp"
                         app:large="true"
                         app:unit="@string/unit_percent" />
 
@@ -351,12 +319,13 @@
                         android:layout_gravity="bottom|start"
                         android:layout_marginStart="82dp"
                         android:layout_marginBottom="24dp"
-                        android:background="@android:color/transparent"
+                        android:background="@drawable/bg_cell_translucent"
                         android:contentDescription="@string/label_oil"
-                        android:paddingStart="8dp"
-                        android:paddingEnd="4dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="14dp"
+                        app:alignEnd="true"
                         app:icon="oil"
-                        app:iconSize="52dp"
+                        app:iconSize="40dp"
                         app:large="true"
                         app:unit="@string/unit_celsius" />
 

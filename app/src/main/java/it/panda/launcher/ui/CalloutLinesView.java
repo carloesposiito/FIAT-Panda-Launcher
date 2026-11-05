@@ -97,7 +97,7 @@ public class CalloutLinesView extends View {
                 ex = sx;
                 ey = sy + (dy > 0 ? stub : -stub);
             } else { // il punto sta di lato: si parte dal bordo sinistro/destro, vicino all'icona o al testo
-                sx = dx > 0 ? right + gap : left + v.getPaddingLeft() - gap;
+                sx = dx > 0 ? right + gap : left - gap;
                 sy = cy;
                 ex = sx + (dx > 0 ? stub : -stub);
                 ey = sy;

@@ -22,8 +22,10 @@ public final class Prefs {
     private static final String KEY_OBD_ENABLED = "obd_enabled";
     private static final String KEY_NAV_ENABLED = "nav_enabled";
     private static final String KEY_DEMO = "demo_data";
+    private static final String KEY_CAR_DATA = "car_data";
+    private static final String KEY_BORDERS = "debug_borders";
     private static final String KEY_MAX_SPEED = "max_speed";
-    private static final String KEY_MAX_RPM = "max_rpm";
+    private static final String KEY_RED_RPM = "red_rpm";
     private static final String KEY_SHIFT_RPM = "shift_rpm";
 
     /** Cilindrate dei motori benzina della Panda 169. */
@@ -62,13 +64,13 @@ public final class Prefs {
         sp(c).edit().putInt(KEY_MAX_SPEED, kmh).apply();
     }
 
-    /** Fondo scala del contagiri (giri/min). */
-    public static int getMaxRpm(Context c) {
-        return sp(c).getInt(KEY_MAX_RPM, 7000);
+    /** Giri/min oltre i quali la freccia diventa rossa (fuori giri). */
+    public static int getRedRpm(Context c) {
+        return sp(c).getInt(KEY_RED_RPM, 6500);
     }
 
-    public static void setMaxRpm(Context c, int rpm) {
-        sp(c).edit().putInt(KEY_MAX_RPM, rpm).apply();
+    public static void setRedRpm(Context c, int rpm) {
+        sp(c).edit().putInt(KEY_RED_RPM, rpm).apply();
     }
 
     /** Giri/min da cui compare la freccia "cambia marcia". */
@@ -78,6 +80,24 @@ public final class Prefs {
 
     public static void setShiftRpm(Context c, int rpm) {
         sp(c).edit().putInt(KEY_SHIFT_RPM, rpm).apply();
+    }
+
+    /** Mostra i quattro dati (acqua, batteria, olio, carburante) con le linee che partono dall'auto. */
+    public static boolean getCarData(Context c) {
+        return sp(c).getBoolean(KEY_CAR_DATA, true);
+    }
+
+    public static void setCarData(Context c, boolean on) {
+        sp(c).edit().putBoolean(KEY_CAR_DATA, on).apply();
+    }
+
+    /** Contorni colorati attorno ai blocchi della Home, per vedere gli spazi. */
+    public static boolean getDebugBorders(Context c) {
+        return sp(c).getBoolean(KEY_BORDERS, false);
+    }
+
+    public static void setDebugBorders(Context c, boolean on) {
+        sp(c).edit().putBoolean(KEY_BORDERS, on).apply();
     }
 
     /** Dati finti al posto di quelli dell'auto, per provare la grafica senza adattatore OBD. */

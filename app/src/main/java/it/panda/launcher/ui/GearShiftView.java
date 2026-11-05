@@ -3,6 +3,8 @@ package it.panda.launcher.ui;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.RadialGradient;
+import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -32,7 +34,8 @@ public class GearShiftView extends View {
     private final Paint disc = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint discEdge = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final int accent, bg, muted, line;
+    private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final int accent, bg, muted, line, discTop, accentLight;
 
     /** null = sconosciuta, 0 = folle, 1-5. */
     private Integer gear;
@@ -43,14 +46,18 @@ public class GearShiftView extends View {
         bg = context.getColor(R.color.bg);
         muted = context.getColor(R.color.muted);
         line = context.getColor(R.color.line_strong);
+        discTop = 0xFF1E2530; // riflesso in alto sui dischi spenti
+        accentLight = 0xFFFFE27A; // riflesso sul disco acceso
         gate.setColor(line);
         gate.setStyle(Paint.Style.STROKE);
-        gate.setStrokeWidth(5f);
+        gate.setStrokeWidth(4f);
         gate.setStrokeCap(Paint.Cap.ROUND);
         gateActive.set(gate);
         gateActive.setColor(accent);
         discEdge.setStyle(Paint.Style.STROKE);
-        discEdge.setStrokeWidth(2f);
+        discEdge.setStrokeWidth(1.6f);
+        glow.setStyle(Paint.Style.STROKE);
+        glow.setStrokeCap(Paint.Cap.ROUND);
         text.setTextAlign(Paint.Align.CENTER);
         text.setTypeface(Fonts.bold(context));
         text.setTextSize(15f);
@@ -84,27 +91,50 @@ public class GearShiftView extends View {
         canvas.translate((getWidth() - W * scale) / 2f, (getHeight() - H * scale) / 2f);
         canvas.scale(scale, scale);
 
-        // corridoi della leva; la barra centrale si accende in folle
+        // corridoi della leva; la barra centrale si accende in folle, quello della marcia inserita ha un alone
         boolean neutral = gear != null && gear == 0;
-        canvas.drawLine(14, 36, 74, 36, neutral ? gateActive : gate);
-        canvas.drawLine(14, 14, 14, 36, isOn(1) ? gateActive : gate);
-        canvas.drawLine(14, 36, 14, 58, isOn(2) ? gateActive : gate);
-        canvas.drawLine(44, 14, 44, 36, isOn(3) ? gateActive : gate);
-        canvas.drawLine(44, 36, 44, 58, isOn(4) ? gateActive : gate);
-        canvas.drawLine(74, 14, 74, 36, isOn(5) ? gateActive : gate);
+        drawGate(canvas, 14, 36, 74, 36, neutral);
+        drawGate(canvas, 14, 14, 14, 36, isOn(1));
+        drawGate(canvas, 14, 36, 14, 58, isOn(2));
+        drawGate(canvas, 44, 14, 44, 36, isOn(3));
+        drawGate(canvas, 44, 36, 44, 58, isOn(4));
+        drawGate(canvas, 74, 14, 74, 36, isOn(5));
 
         Paint.FontMetrics fm = text.getFontMetrics();
         float textOffset = -(fm.ascent + fm.descent) / 2f;
         for (int i = 0; i < LABELS.length; i++) {
             boolean on = isOn(GEARS[i]);
-            disc.setColor(on ? accent : bg);
-            discEdge.setColor(on ? accent : line);
-            canvas.drawCircle(POS[i][0], POS[i][1], RADIUS, disc);
-            canvas.drawCircle(POS[i][0], POS[i][1], RADIUS, discEdge);
+            float x = POS[i][0], y = POS[i][1];
+            if (on) { // alone dietro al disco acceso
+                disc.setShader(null);
+                disc.setColor(accent);
+                disc.setAlpha(40);
+                canvas.drawCircle(x, y, RADIUS + 5f, disc);
+                disc.setAlpha(70);
+                canvas.drawCircle(x, y, RADIUS + 2.5f, disc);
+            }
+            // disco con riflesso in alto a sinistra
+            disc.setShader(new RadialGradient(x - RADIUS * 0.35f, y - RADIUS * 0.45f, RADIUS * 1.5f,
+                    on ? accentLight : discTop, on ? accent : bg, Shader.TileMode.CLAMP));
+            disc.setAlpha(255);
+            canvas.drawCircle(x, y, RADIUS, disc);
+            disc.setShader(null);
+            discEdge.setColor(on ? 0xFFFFF3C2 : line);
+            canvas.drawCircle(x, y, RADIUS, discEdge);
             text.setColor(on ? bg : muted);
-            canvas.drawText(LABELS[i], POS[i][0], POS[i][1] + textOffset, text);
+            canvas.drawText(LABELS[i], x, y + textOffset, text);
         }
         canvas.restore();
+    }
+
+    private void drawGate(Canvas canvas, float x1, float y1, float x2, float y2, boolean active) {
+        if (active) {
+            glow.setColor(accent);
+            glow.setAlpha(60);
+            glow.setStrokeWidth(9f);
+            canvas.drawLine(x1, y1, x2, y2, glow);
+        }
+        canvas.drawLine(x1, y1, x2, y2, active ? gateActive : gate);
     }
 
     private boolean isOn(int g) {

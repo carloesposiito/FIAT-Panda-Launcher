@@ -51,7 +51,6 @@ import it.panda.launcher.ui.Fonts;
 import it.panda.launcher.ui.GaugeView;
 import it.panda.launcher.ui.GearShiftView;
 import it.panda.launcher.ui.MetricCellView;
-import it.panda.launcher.ui.SegmentBarView;
 
 /**
  * Schermata Home: app e volume a sinistra; a destra la barra in alto (ora) e le pagine da scorrere
@@ -62,7 +61,6 @@ public class LauncherActivity extends Activity
 
     private static final int REQUEST_BT = 1;
     /** Da questa frazione del fondo scala i giri sono "fuori giri" (6000 su 7000). */
-    private static final float RPM_RED_FROM = 6f / 7f;
     private static final Locale IT = Locale.ITALIAN;
 
     // colonna app
@@ -110,11 +108,8 @@ public class LauncherActivity extends Activity
     private boolean pausedOnce;
     private GearShiftView gearShift;
     private GaugeView speedGauge;
-    private TextView rpmValue;
-    private SegmentBarView rpmBar;
-    private int maxRpm = 7000;
-    private int shiftRpm = 6000;
-    private View shiftArrow;
+    private int shiftRpm = 6000, redRpm = 6500;
+    private android.widget.ImageView shiftArrow;
     private MetricCellView cellInstantCar;
     private MetricCellView cellCoolant, cellOil, cellBattery, cellFuel;
 
@@ -412,8 +407,9 @@ public class LauncherActivity extends Activity
         }
         pageDots.setVisibility(available > 1 ? View.VISIBLE : View.GONE);
         tilesLeft.setVisibility(obdEnabled || demo ? View.VISIBLE : View.GONE);
+        boolean showCarData = Prefs.getCarData(this) && (obdEnabled || demo);
         for (View label : new View[]{cellBattery, cellCoolant, cellFuel, cellOil}) {
-            label.setVisibility(obdEnabled || demo ? View.VISIBLE : View.GONE);
+            label.setVisibility(showCarData ? View.VISIBLE : View.GONE);
         }
 
         int saved = Math.max(0, Math.min(pages.length - 1, Prefs.getPage(this)));
@@ -574,8 +570,6 @@ public class LauncherActivity extends Activity
         tilesLeft = findViewById(R.id.tiles_left);
         speedGauge = findViewById(R.id.speed_gauge);
         speedGauge.setUnit(getString(R.string.unit_kmh));
-        rpmValue = findViewById(R.id.rpm_value);
-        rpmBar = findViewById(R.id.rpm_bar);
         gearShift = findViewById(R.id.gear_shift);
         shiftArrow = findViewById(R.id.shift_arrow);
         // la freccia sta nel posto vuoto dello schema, alla stessa altezza della 4ª (centro in 74/88, 58/72)
@@ -642,17 +636,13 @@ public class LauncherActivity extends Activity
         speedGauge.setValue(s.speedKmh);
         // la marcia si legge sullo schema della leva (folle = barra centrale accesa)
         gearShift.setGear(s.gear == null || s.gear < 0 ? null : s.gear);
-        // freccia: giri oltre la soglia scelta e una marcia più alta da inserire (non in folle, non in quinta)
+        // freccia: giri oltre la soglia scelta e una marcia più alta da inserire (non in folle, non in quinta);
+        // oltre il massimo è rossa e compare comunque
         boolean canShiftUp = s.gear == null || s.gear < 0 || (s.gear >= 1 && s.gear < 5);
-        shiftArrow.setVisibility(s.rpm != null && s.rpm >= shiftRpm && canShiftUp ? View.VISIBLE : View.GONE);
-        // giri arrotondati a 10; rosso nella zona di fuori giri
-        if (s.rpm != null) {
-            rpmValue.setText(String.valueOf(Math.round(s.rpm / 10.0) * 10));
-            rpmValue.setTextColor(getColor(s.rpm >= maxRpm * RPM_RED_FROM ? R.color.crit : R.color.text));
-            rpmBar.setFraction((float) (s.rpm / maxRpm));
-        } else {
-            showNoRpm();
-        }
+        boolean over = s.rpm != null && s.rpm >= redRpm;
+        boolean shift = s.rpm != null && s.rpm >= shiftRpm && canShiftUp;
+        shiftArrow.setColorFilter(getColor(over ? R.color.crit : R.color.accent));
+        shiftArrow.setVisibility(shift || over ? View.VISIBLE : View.GONE);
 
 
         // dati auto: icona colorata e riempita in base al valore
@@ -775,23 +765,32 @@ public class LauncherActivity extends Activity
         speedGauge.setValue(null);
         gearShift.setGear(null);
         shiftArrow.setVisibility(View.GONE);
-        showNoRpm();
         showInstant(dash(), R.string.unit_l100);
     }
 
-    private void showNoRpm() {
-        rpmValue.setText(dash());
-        rpmValue.setTextColor(getColor(R.color.text));
-        rpmBar.setFraction(0);
-    }
-
-    /** Fondo scala di tachimetro e contagiri, come scelto nelle impostazioni. */
+    /** Fondo scala del tachimetro e soglie dei giri, come scelti nelle impostazioni. */
     private void applyGaugeScales() {
         int maxSpeed = Prefs.getMaxSpeed(this);
         speedGauge.configure(maxSpeed, 0, maxSpeed > 210 ? 40 : 20);
-        maxRpm = Prefs.getMaxRpm(this);
         shiftRpm = Prefs.getShiftRpm(this);
-        rpmBar.setRedFrom(RPM_RED_FROM);
+        redRpm = Prefs.getRedRpm(this);
+    }
+
+    /** Contorni colorati dei blocchi della Home (impostazione "Mostra i bordi"). */
+    private void applyBorders() {
+        boolean on = Prefs.getDebugBorders(this);
+        Object[][] borders = {
+                {R.id.tiles_left, R.drawable.debug_border_red},
+                {R.id.car_zone, R.drawable.debug_border_white},
+                {R.id.car_image, R.drawable.debug_border_green},
+                {R.id.cell_battery, R.drawable.debug_border_yellow},
+                {R.id.cell_coolant, R.drawable.debug_border_yellow},
+                {R.id.cell_fuel, R.drawable.debug_border_yellow},
+                {R.id.cell_oil, R.drawable.debug_border_yellow},
+        };
+        for (Object[] b : borders) {
+            findViewById((Integer) b[0]).setForeground(on ? getDrawable((Integer) b[1]) : null);
+        }
     }
 
     // ================================================================ avvisi
@@ -968,6 +967,7 @@ public class LauncherActivity extends Activity
         activityResumed = true;
         obd.setVisible(true);
         applyGaugeScales();
+        applyBorders();
         boolean wantDemo = Prefs.getDemo(this);
         if (wantDemo) { // onPause ferma il timer: si riparte a ogni ritorno nella Home
             startDemo();

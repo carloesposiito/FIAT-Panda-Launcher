@@ -274,8 +274,8 @@ public class SettingsActivity extends Activity {
         addTitle(R.string.pref_gauges_title);
         addHint(R.string.pref_gauges_hint);
         addStepper(R.string.pref_max_speed, Prefs.getMaxSpeed(this), 10, 60, 400, " km/h", v -> Prefs.setMaxSpeed(this, v));
-        addStepper(R.string.pref_max_rpm, Prefs.getMaxRpm(this), 500, 3000, 12000, " giri/min", v -> Prefs.setMaxRpm(this, v));
         addStepper(R.string.pref_shift_rpm, Prefs.getShiftRpm(this), 100, 2000, 12000, " giri/min", v -> Prefs.setShiftRpm(this, v));
+        addStepper(R.string.pref_red_rpm, Prefs.getRedRpm(this), 100, 2000, 12000, " giri/min", v -> Prefs.setRedRpm(this, v));
     }
 
     /** Riga con etichetta e tasti − / + (senza tastiera a schermo, che sulle autoradio spesso manca). */
@@ -335,20 +335,30 @@ public class SettingsActivity extends Activity {
             addHint(R.string.pref_lock_revoke_hint);
         }
 
-        Switch demo = new Switch(this);
-        demo.setText(R.string.pref_demo);
-        demo.setTextColor(getColor(R.color.text));
-        demo.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        demo.setChecked(Prefs.getDemo(this));
-        demo.setPadding(0, dp(8), 0, dp(8));
-        demo.setOnCheckedChangeListener((b, checked) -> Prefs.setDemo(this, checked));
-        content.addView(demo);
+        addSwitch(R.string.pref_car_data, Prefs.getCarData(this), checked -> Prefs.setCarData(this, checked));
+        addHint(R.string.pref_car_data_hint);
+
+        addSwitch(R.string.pref_borders, Prefs.getDebugBorders(this), checked -> Prefs.setDebugBorders(this, checked));
+        addHint(R.string.pref_borders_hint);
+
+        addSwitch(R.string.pref_demo, Prefs.getDemo(this), checked -> Prefs.setDemo(this, checked));
         addHint(R.string.pref_demo_hint);
 
         Button home = addButton(R.string.pref_choose_home);
         home.setOnClickListener(v -> openSettings(Settings.ACTION_HOME_SETTINGS));
         Button system = addButton(R.string.pref_android_settings);
         system.setOnClickListener(v -> openSettings(Settings.ACTION_SETTINGS));
+    }
+
+    private void addSwitch(int label, boolean checked, java.util.function.Consumer<Boolean> save) {
+        Switch sw = new Switch(this);
+        sw.setText(label);
+        sw.setTextColor(getColor(R.color.text));
+        sw.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        sw.setChecked(checked);
+        sw.setPadding(0, dp(8), 0, dp(8));
+        sw.setOnCheckedChangeListener((b, on) -> save.accept(on));
+        content.addView(sw);
     }
 
     private void openSettings(String action) {

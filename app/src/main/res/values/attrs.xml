@@ -18,6 +18,8 @@
         <attr name="accent" format="boolean" />
         <!-- etichetta, valore e unità centrati (senza icona) -->
         <attr name="centered" format="boolean" />
+        <!-- icona, valore e unità raggruppati sul lato destro della casella -->
+        <attr name="alignEnd" format="boolean" />
         <!-- versione grande, per la pagina dell'auto e per Consumi -->
         <attr name="large" format="boolean" />
         <!-- lato dell'icona -->

@@ -10,16 +10,12 @@ import android.view.View;
 import it.panda.launcher.R;
 
 /**
- * Icone dei dati dell'auto (Material, tranne l'oliera). Il livello (0..1) riempie l'icona dal basso: serbatoio, temperature,
- * carica della batteria. Sotto il livello l'icona è piena, sopra è attenuata; con la batteria in ricarica
+ * Icone dei dati dell'auto, a contorno sottile e colorate secondo lo stato. Con la batteria in ricarica
  * si usa la versione col fulmine.
  */
 public class MetricIconView extends View {
 
     public enum Type { NONE, WATER, OIL, BATTERY, FUEL }
-
-    /** Parte dell'altezza (su 24) occupata dal disegno: il riempimento va da 22 (vuoto) a 2 (pieno). */
-    private static final float GLYPH_BOTTOM = 22f, GLYPH_HEIGHT = 20f;
 
     private Drawable normal, charging;
     private Type type = Type.NONE;
@@ -48,16 +44,16 @@ public class MetricIconView extends View {
         int res;
         switch (t) {
             case WATER:
-                res = R.drawable.ic_m_thermostat;
+                res = R.drawable.ic_line_thermo;
                 break;
             case OIL:
-                res = R.drawable.ic_oil_can;
+                res = R.drawable.ic_line_oil;
                 break;
             case BATTERY:
-                res = withBolt ? R.drawable.ic_m_battery_charging : R.drawable.ic_m_battery;
+                res = withBolt ? R.drawable.ic_line_battery_charging : R.drawable.ic_line_battery;
                 break;
             case FUEL:
-                res = R.drawable.ic_m_fuel;
+                res = R.drawable.ic_line_fuel;
                 break;
             default:
                 return null;
@@ -90,14 +86,8 @@ public class MetricIconView extends View {
             icon.draw(canvas);
             return;
         }
-        icon.setTint(withAlpha(color, 70));
-        icon.draw(canvas);
-        float top = (GLYPH_BOTTOM - GLYPH_HEIGHT * level) / 24f * h;
-        canvas.save();
-        canvas.clipRect(0, top, w, h);
         icon.setTint(color);
         icon.draw(canvas);
-        canvas.restore();
     }
 
     private static int withAlpha(int c, int alpha) {
