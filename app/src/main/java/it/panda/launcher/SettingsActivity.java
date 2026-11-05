@@ -2,6 +2,7 @@ package it.panda.launcher;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -11,11 +12,11 @@ import android.provider.Settings;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.ScrollView;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -24,12 +25,13 @@ import java.util.Set;
 
 import it.panda.launcher.apps.AppEntry;
 import it.panda.launcher.apps.AppLoader;
-import it.panda.launcher.apps.FavoriteSelection;
 import it.panda.launcher.obd.BluetoothPermissions;
+import it.panda.launcher.nav.NavReceiver;
+import it.panda.launcher.obd.ObdManager;
 
 /**
- * Impostazioni: adattatore OBD, motore (per la stima dei consumi), rotazione automatica
- * e scorciatoie verso le impostazioni di Android. L'interfaccia è costruita in codice
+ * Impostazioni: app della colonna, OBD, motore (per la stima dei consumi),
+ * rotazione automatica e scorciatoie verso le impostazioni di Android. L'interfaccia è costruita in codice
  * perché è solo un elenco di opzioni.
  */
 public class SettingsActivity extends Activity {
@@ -55,6 +57,7 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        Immersive.apply(this);
         // l'elenco dei dispositivi può cambiare dopo essere passati dalle impostazioni Bluetooth
         build();
     }
@@ -63,53 +66,30 @@ public class SettingsActivity extends Activity {
         content.removeAllViews();
         buildAppsSection();
         buildObdSection();
+        buildNavSection();
         buildEngineSection();
         buildDisplaySection();
     }
 
-    // ---------------------------------------------------------------- app a sinistra
+    @Override
+    protected void onDestroy() {
+        if (appLoader != null) {
+            appLoader.shutdown();
+        }
+        super.onDestroy();
+    }
+
+    // ---------------------------------------------------------------- colonna app
 
     private void buildAppsSection() {
         addTitle(R.string.pref_apps_title);
         addHint(R.string.pref_apps_hint);
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        content.addView(box);
-
-        if (appLoader == null) {
-            appLoader = new AppLoader(this);
+        int slots = Prefs.getAppSlots(this);
+        if (slots > 0) {
+            addHintText(getString(R.string.pref_apps_slots, slots));
         }
-        appLoader.load(apps -> {
-            if (box.getParent() == null) {
-                return; // la schermata è stata ricostruita nel frattempo
-            }
-            List<String> allKeys = new ArrayList<>();
-            for (AppEntry app : apps) {
-                allKeys.add(app.key());
-            }
-            List<String> saved = Prefs.getFavoriteApps(this);
-            for (AppEntry app : apps) {
-                CheckBox cb = new CheckBox(this);
-                cb.setText(app.label);
-                cb.setTextColor(getColor(R.color.text));
-                cb.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-                cb.setPadding(dp(8), dp(10), 0, dp(10));
-                cb.setCompoundDrawablesRelativeWithIntrinsicBounds(app.icon, null, null, null);
-                cb.setCompoundDrawablePadding(dp(12));
-                cb.setChecked(saved == null || saved.contains(app.key()));
-                cb.setOnCheckedChangeListener((b, checked) -> Prefs.setFavoriteApps(this,
-                        FavoriteSelection.toggle(Prefs.getFavoriteApps(this), allKeys, app.key(), checked)));
-                box.addView(cb);
-            }
-        });
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (appLoader != null) {
-            appLoader.shutdown();
-        }
+        Button edit = addButton(R.string.pref_apps_edit);
+        edit.setOnClickListener(v -> startActivity(new Intent(this, AppPickerActivity.class)));
     }
 
     // ---------------------------------------------------------------- adattatore OBD
@@ -117,6 +97,32 @@ public class SettingsActivity extends Activity {
     @SuppressLint("MissingPermission")
     private void buildObdSection() {
         addTitle(R.string.pref_obd_title);
+
+        boolean enabled = Prefs.getObdEnabled(this);
+        Switch use = new Switch(this);
+        use.setText(R.string.pref_obd_enable);
+        use.setTextColor(getColor(R.color.text));
+        use.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        use.setChecked(enabled);
+        use.setPadding(0, dp(8), 0, dp(8));
+        use.setOnCheckedChangeListener((b, checked) -> {
+            Prefs.setObdEnabled(this, checked);
+            build();
+        });
+        content.addView(use);
+        if (!enabled) {
+            addHint(R.string.pref_obd_disabled_hint);
+            return;
+        }
+
+        // stato del collegamento (protocollo usato o ultimo errore)
+        String state = obdStateText(ObdManager.lastState());
+        String detail = ObdManager.lastDetail();
+        TextView status = addHintText(getString(R.string.pref_obd_status, detail != null && !detail.isEmpty() ? state + " (" + detail + ")" : state));
+        status.setTextColor(getColor(ObdManager.lastState() == ObdManager.State.CONNECTED ? R.color.ok
+                : ObdManager.lastState() == ObdManager.State.ERROR ? R.color.crit : R.color.muted));
+
+        addSubtitle(R.string.pref_obd_adapter);
         addHint(R.string.pref_obd_hint);
 
         if (!BluetoothPermissions.canConnect(this)) {
@@ -160,6 +166,88 @@ public class SettingsActivity extends Activity {
         bt.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS)));
     }
 
+    private String obdStateText(ObdManager.State s) {
+        switch (s) {
+            case CONNECTED:
+                return getString(R.string.obd_connected_long);
+            case CONNECTING:
+                return getString(R.string.obd_connecting);
+            case ERROR:
+                return getString(R.string.obd_error);
+            default:
+                return getString(R.string.obd_not_configured);
+        }
+    }
+
+    // ---------------------------------------------------------------- navigazione (goESP)
+
+    private void buildNavSection() {
+        addTitle(R.string.pref_nav_title);
+        boolean enabled = Prefs.getNavEnabled(this);
+        Switch use = new Switch(this);
+        use.setText(R.string.pref_nav_enable);
+        use.setTextColor(getColor(R.color.text));
+        use.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        use.setChecked(enabled);
+        use.setPadding(0, dp(8), 0, dp(8));
+        use.setOnCheckedChangeListener((b, checked) -> {
+            Prefs.setNavEnabled(this, checked);
+            if (checked && !BluetoothPermissions.canAdvertise(this)) {
+                requestPermissions(BluetoothPermissions.runtimePermissions(), REQUEST_BT);
+            }
+            build();
+        });
+        content.addView(use);
+        addHint(R.string.pref_nav_hint);
+        if (enabled) {
+            NavReceiver.State s = NavReceiver.get(this).state();
+            String text;
+            int color = R.color.muted;
+            switch (s) {
+                case CONNECTED:
+                    text = getString(R.string.pref_nav_state_connected, String.valueOf(NavReceiver.get(this).deviceName()));
+                    color = R.color.ok;
+                    break;
+                case WAITING:
+                    text = getString(R.string.pref_nav_state_waiting);
+                    break;
+                case STARTING:
+                    text = getString(R.string.pref_nav_state_starting);
+                    break;
+                case UNSUPPORTED:
+                    text = getString(R.string.pref_nav_state_unsupported);
+                    color = R.color.crit;
+                    break;
+                case BT_OFF:
+                    text = getString(R.string.pref_nav_state_bt_off);
+                    color = R.color.crit;
+                    break;
+                case NO_BLUETOOTH:
+                    text = getString(R.string.pref_nav_state_no_bt);
+                    color = R.color.crit;
+                    break;
+                case NO_PERMISSION:
+                    text = getString(R.string.pref_nav_state_permission);
+                    color = R.color.crit;
+                    break;
+                case ERROR:
+                    text = getString(R.string.pref_nav_state_error);
+                    color = R.color.crit;
+                    break;
+                default:
+                    text = getString(R.string.pref_nav_state_off);
+                    break;
+            }
+            TextView status = addHintText(getString(R.string.pref_nav_status, text));
+            status.setTextColor(getColor(color));
+            if (s == NavReceiver.State.NO_PERMISSION) {
+                Button ask = addButton(R.string.pref_grant_permission);
+                ask.setOnClickListener(v -> requestPermissions(BluetoothPermissions.runtimePermissions(), REQUEST_BT));
+            }
+        }
+        addHint(R.string.pref_nav_phone_settings);
+    }
+
     // ---------------------------------------------------------------- motore
 
     private void buildEngineSection() {
@@ -183,6 +271,18 @@ public class SettingsActivity extends Activity {
 
     private void buildDisplaySection() {
         addTitle(R.string.pref_display_title);
+        boolean lock = ScreenLock.isAllowed(this);
+        TextView lockState = addHintText(getString(lock ? R.string.pref_lock_on : R.string.pref_lock_off));
+        lockState.setPadding(0, dp(8), 0, dp(4));
+        if (lock) {
+            Button revoke = addButton(R.string.pref_lock_revoke);
+            revoke.setOnClickListener(v -> {
+                ScreenLock.revoke(this);
+                content.postDelayed(this::build, 600); // Android toglie l'autorizzazione con un attimo di ritardo
+            });
+            addHint(R.string.pref_lock_revoke_hint);
+        }
+
         Button home = addButton(R.string.pref_choose_home);
         home.setOnClickListener(v -> openSettings(Settings.ACTION_HOME_SETTINGS));
         Button system = addButton(R.string.pref_android_settings);
@@ -217,13 +317,27 @@ public class SettingsActivity extends Activity {
         content.addView(t);
     }
 
+    private void addSubtitle(int text) {
+        TextView t = new TextView(this);
+        t.setText(text);
+        t.setTextColor(getColor(R.color.text));
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        t.setPadding(0, dp(12), 0, dp(4));
+        content.addView(t);
+    }
+
     private void addHint(int text) {
+        addHintText(getString(text));
+    }
+
+    private TextView addHintText(String text) {
         TextView t = new TextView(this);
         t.setText(text);
         t.setTextColor(getColor(R.color.muted));
         t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         t.setPadding(0, 0, 0, dp(8));
         content.addView(t);
+        return t;
     }
 
     private Button addButton(int text) {
@@ -250,5 +364,13 @@ public class SettingsActivity extends Activity {
 
     private int dp(int v) {
         return Math.round(v * getResources().getDisplayMetrics().density);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            Immersive.apply(this); // dopo dialoghi e tendine le barre vanno nascoste di nuovo
+        }
     }
 }

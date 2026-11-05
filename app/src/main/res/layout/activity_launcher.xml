@@ -1,786 +1,659 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    Schermata Home, tre colonne:
-    - sinistra: app scelte nelle Impostazioni, separatore, impostazioni e spegni schermo;
-    - centro: media e volume, auto 3D con tasti rotazione e avvisi, velocità / marcia / giri;
-    - destra: ora e data, temperatura esterna, dati auto, consumo con grafico.
--->
+<!-- Home: colonna app a sinistra, a destra l'area principale.
+     Area principale: barra in alto (ora, data, temperatura),
+     poi tre pagine (Auto 3D, Dati auto, Consumi) e in basso le frecce per cambiare pagina. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg"
-    android:orientation="horizontal"
-    android:padding="8dp"
-    tools:ignore="UnusedAttribute">
+    android:baselineAligned="false"
+    android:orientation="horizontal">
 
-    <!-- ===== Sinistra ===== -->
+    <!-- ===================== Sinistra: app ===================== -->
     <LinearLayout
         android:layout_width="@dimen/app_column"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="6dp">
+        android:paddingStart="8dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="6dp">
 
-        <GridView
-            android:id="@+id/app_grid"
+        <!-- riempita dal codice con quante icone ci stanno -->
+        <LinearLayout
+            android:id="@+id/app_list"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:listSelector="@android:color/transparent"
-            android:numColumns="1"
-            android:scrollbars="none"
-            android:verticalSpacing="8dp" />
+            android:orientation="vertical" />
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginBottom="5dp"
             android:background="@color/line" />
 
         <ImageButton
-            android:id="@+id/settings_button"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/app_icon"
-            android:background="@drawable/bg_app_item"
-            android:contentDescription="@string/cd_settings"
-            android:scaleType="center"
-            android:src="@drawable/ic_settings" />
+            android:id="@+id/screen_off_button"
+            style="@style/ColumnButton"
+            android:contentDescription="@string/screen_off"
+            android:src="@drawable/ic_round_screen_off" />
 
         <ImageButton
-            android:id="@+id/screen_off_button"
+            android:id="@+id/settings_button"
+            style="@style/ColumnButton"
+            android:contentDescription="@string/settings_button"
+            android:src="@drawable/ic_round_settings" />
+
+        <View
             android:layout_width="match_parent"
-            android:layout_height="@dimen/app_icon"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/bg_app_item"
-            android:contentDescription="@string/cd_screen_off"
-            android:scaleType="center"
-            android:src="@drawable/ic_power"
-            android:tint="@color/crit" />
-    </LinearLayout>
+            android:layout_height="1dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginBottom="5dp"
+            android:background="@color/line" />
 
-    <!-- ===== Centro ===== -->
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
-
-        <!-- Media e volume -->
-        <LinearLayout
-            android:id="@+id/media_card"
+        <!-- volume: valore in un cerchio grigio traslucido (solo lettura), poi − e + (tenendo premuto si ripete) -->
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_card"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="10dp">
-
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:importantForAccessibility="no"
-                android:padding="6dp"
-                android:src="@drawable/ic_music"
-                android:tint="@color/accent" />
+            android:layout_height="@dimen/app_cell">
 
             <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
+                android:layout_width="@dimen/app_icon"
+                android:layout_height="@dimen/app_icon"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_volume_value"
+                android:gravity="center"
                 android:orientation="vertical">
 
                 <TextView
-                    style="@style/SectionLabel"
-                    android:text="@string/media_kind" />
-
-                <TextView
-                    android:id="@+id/media_title"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:fontFamily="sans-serif-condensed"
-                    android:maxLines="1"
-                    android:text="@string/media_idle"
-                    android:textColor="@color/text"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/media_sub"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="@color/muted"
-                    android:textSize="13sp" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/volume_value"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:fontFamily="sans-serif-condensed"
-                android:fontFeatureSettings="tnum"
-                android:minWidth="30dp"
-                android:gravity="end"
-                android:textColor="@color/text"
-                android:textSize="26sp"
-                android:textStyle="bold" />
-
-            <ImageButton
-                android:id="@+id/volume_down"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@drawable/bg_round"
-                android:contentDescription="@string/cd_volume_down"
-                android:src="@drawable/ic_volume_down"
-                android:tint="@color/text" />
-
-            <ImageButton
-                android:id="@+id/volume_up"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/bg_round"
-                android:contentDescription="@string/cd_volume_up"
-                android:src="@drawable/ic_volume_up"
-                android:tint="@color/text" />
-        </LinearLayout>
-
-        <!--
-            Auto 3D. Sfondo e vista 3D hanno gli stessi limiti: CarRenderer calcola la posizione
-            della base nello spazio della vista 3D e la passa al fondale.
-        -->
-        <FrameLayout
-            android:id="@+id/stage"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1">
-
-            <it.panda.launcher.ui.StudioBackdropView
-                android:id="@+id/backdrop"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
-
-            <TextureView
-                android:id="@+id/car_view"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
-
-            <TextView
-                android:id="@+id/model_error"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:gravity="center"
-                android:padding="24dp"
-                android:textColor="@color/muted"
-                android:textSize="14sp"
-                android:visibility="gone" />
-
-            <ImageButton
-                android:id="@+id/rotate_button"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_gravity="top|end"
-                android:layout_margin="4dp"
-                android:background="@drawable/bg_round"
-                android:contentDescription="@string/cd_rotate"
-                android:src="@drawable/ic_rotate"
-                android:tint="@color/tint_toggle" />
-
-            <FrameLayout
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_gravity="top|end"
-                android:layout_marginTop="52dp"
-                android:layout_marginEnd="4dp">
-
-                <ImageButton
-                    android:id="@+id/warn_button"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/bg_round"
-                    android:contentDescription="@string/cd_warnings"
-                    android:src="@drawable/ic_warning"
-                    android:tint="@color/muted" />
-
-                <TextView
-                    android:id="@+id/warn_badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="18dp"
-                    android:layout_gravity="top|end"
-                    android:background="@drawable/bg_badge"
+                    android:id="@+id/volume_value"
+                    style="@style/TileValue"
+                    android:alpha="0.75"
                     android:gravity="center"
-                    android:minWidth="18dp"
-                    android:paddingStart="5dp"
-                    android:paddingEnd="5dp"
-                    android:textColor="@color/bg"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-            </FrameLayout>
-
-            <!-- Pannello laterale degli avvisi: esce da destra, accanto ai due tasti -->
-            <LinearLayout
-                android:id="@+id/diag_panel"
-                android:layout_width="320dp"
-                android:layout_height="match_parent"
-                android:layout_gravity="end"
-                android:layout_marginEnd="52dp"
-                android:background="@drawable/bg_drawer"
-                android:elevation="8dp"
-                android:orientation="vertical"
-                android:padding="14dp"
-                android:visibility="gone">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        style="@style/SectionLabel"
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:text="@string/warn_title" />
-
-                    <TextView
-                        android:id="@+id/diag_close"
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:contentDescription="@string/cd_close"
-                        android:gravity="center"
-                        android:text="×"
-                        android:textColor="@color/muted"
-                        android:textSize="24sp" />
-                </LinearLayout>
-
-                <ScrollView
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_marginTop="12dp"
-                    android:layout_weight="1">
-
-                    <LinearLayout
-                        android:id="@+id/diag_list"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/diag_empty_title"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="24dp"
-                            android:gravity="center"
-                            android:textColor="@color/ok"
-                            android:textSize="18sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/diag_empty_sub"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:gravity="center"
-                            android:textColor="@color/muted"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-                </ScrollView>
-
-                <Button
-                    android:id="@+id/diag_clear"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/diag_clear"
-                    android:textAllCaps="false"
-                    android:visibility="gone" />
+                    android:includeFontPadding="false"
+                    android:text="@string/no_value"
+                    android:textColor="@color/muted"
+                    android:textSize="28sp" />
             </LinearLayout>
         </FrameLayout>
 
-        <!-- Velocità, marcia e giri: tre colonne con righe fisse (etichetta / valore / dettaglio) -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
-            android:orientation="horizontal"
-            android:paddingTop="6dp">
+        <ImageButton
+            android:id="@+id/volume_down"
+            style="@style/ColumnButton"
+            android:contentDescription="@string/volume_down"
+            android:src="@drawable/ic_round_minus" />
 
-            <LinearLayout
-                android:layout_width="110dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <TextView
-                    style="@style/SectionLabel"
-                    android:layout_width="match_parent"
-                    android:gravity="end"
-                    android:text="@string/lbl_speed" />
-
-                <TextView
-                    android:id="@+id/speed_value"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:fontFamily="sans-serif-condensed"
-                    android:fontFeatureSettings="tnum"
-                    android:gravity="center_vertical|end"
-                    android:textColor="@color/text"
-                    android:textSize="52sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="18dp"
-                    android:gravity="center_vertical|end"
-                    android:text="@string/unit_kmh"
-                    android:textColor="@color/muted"
-                    android:textSize="13sp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="130dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="20dp"
-                android:orientation="vertical">
-
-                <TextView
-                    style="@style/SectionLabel"
-                    android:layout_width="match_parent"
-                    android:gravity="center"
-                    android:text="@string/lbl_gear" />
-
-                <it.panda.launcher.ui.GearPatternView
-                    android:id="@+id/gear_view"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp" />
-
-                <TextView
-                    android:id="@+id/gear_sub"
-                    android:layout_width="match_parent"
-                    android:layout_height="18dp"
-                    android:gravity="center"
-                    android:textColor="@color/muted"
-                    android:textSize="13sp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="230dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="20dp"
-                android:orientation="vertical">
-
-                <TextView
-                    style="@style/SectionLabel"
-                    android:text="@string/lbl_rpm" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/rpm_value"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif-condensed"
-                        android:fontFeatureSettings="tnum"
-                        android:minWidth="104dp"
-                        android:textColor="@color/text"
-                        android:textSize="52sp"
-                        android:textStyle="bold" />
-
-                    <it.panda.launcher.ui.SparklineView
-                        android:id="@+id/rpm_spark"
-                        android:layout_width="0dp"
-                        android:layout_height="34dp"
-                        android:layout_weight="1" />
-                </LinearLayout>
-
-                <it.panda.launcher.ui.SegmentBarView
-                    android:id="@+id/rpm_bar"
-                    android:layout_width="match_parent"
-                    android:layout_height="12dp"
-                    android:layout_marginTop="3dp"
-                    android:layout_marginBottom="3dp" />
-            </LinearLayout>
-        </LinearLayout>
+        <ImageButton
+            android:id="@+id/volume_up"
+            style="@style/ColumnButton"
+            android:contentDescription="@string/volume_up"
+            android:src="@drawable/ic_round_plus" />
     </LinearLayout>
 
-    <!-- ===== Destra ===== -->
     <View
         android:layout_width="1dp"
         android:layout_height="match_parent"
         android:background="@color/line" />
 
+    <!-- ===================== Area principale ===================== -->
     <LinearLayout
-        android:layout_width="@dimen/side_column"
+        android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:paddingStart="10dp">
+        android:layout_weight="1"
+        android:orientation="vertical">
 
-        <TextClock
-            android:id="@+id/clock"
-            android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:autoSizeMaxTextSize="80sp"
-            android:autoSizeMinTextSize="24sp"
-            android:autoSizeTextType="uniform"
-            android:fontFamily="sans-serif-condensed"
-            android:fontFeatureSettings="tnum"
-            android:format12Hour="HH:mm"
-            android:format24Hour="HH:mm"
-            android:gravity="center"
-            android:maxLines="1"
-            android:padding="8dp"
-            android:textColor="@color/text" />
-
-        <TextView
-            android:id="@+id/date"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:paddingBottom="8dp"
-            android:textColor="@color/muted"
-            android:textSize="15sp" />
-
-        <!-- Temperatura esterna -->
+        <!-- Barra in alto: data a sinistra, ora a destra -->
         <LinearLayout
+            style="@style/Tile"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_card"
+            android:layout_height="68dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="12dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="10dp">
+            android:paddingStart="20dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="6dp">
 
+            <!-- giorno e data a sinistra, ora a destra -->
             <TextView
-                style="@style/SectionLabel"
+                android:id="@+id/date"
+                style="@style/TileValue"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:text="@string/lbl_ambient" />
+                android:includeFontPadding="false"
+                android:singleLine="true"
+                android:textSize="33sp" />
 
-            <TextView
-                android:id="@+id/ambient_value"
+            <TextClock
+                android:id="@+id/clock"
                 style="@style/TileValue"
-                android:textColor="@color/cold" />
-
-            <TextView
-                style="@style/TileUnit"
-                android:text="@string/unit_celsius" />
+                android:format12Hour="HH:mm"
+                android:format24Hour="HH:mm"
+                android:includeFontPadding="false"
+                android:textSize="36sp" />
         </LinearLayout>
 
-        <!-- Dati auto: griglia 2x2 con separatori -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/bg_card"
-            android:orientation="vertical"
-            android:padding="12dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <View
-                    android:id="@+id/data_dot"
-                    android:layout_width="7dp"
-                    android:layout_height="7dp"
-                    android:background="@drawable/bg_dot" />
-
-                <TextView
-                    style="@style/SectionLabel"
-                    android:layout_marginStart="6dp"
-                    android:text="@string/lbl_data" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:orientation="horizontal">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp"
-                    android:paddingEnd="8dp">
-
-                    <ImageView
-                        android:id="@+id/battery_icon"
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_battery" />
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:orientation="vertical">
-
-                        <TextView
-                            style="@style/TileLabel"
-                            android:text="@string/lbl_battery" />
-
-                        <TextView
-                            android:id="@+id/battery_value"
-                            style="@style/TileValue"
-                            android:textSize="22sp" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="match_parent"
-                    android:background="@color/line" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="12dp"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp">
-
-                    <ImageView
-                        android:id="@+id/coolant_icon"
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_thermometer" />
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:orientation="vertical">
-
-                        <TextView
-                            style="@style/TileLabel"
-                            android:text="@string/lbl_coolant" />
-
-                        <TextView
-                            android:id="@+id/coolant_value"
-                            style="@style/TileValue"
-                            android:textSize="22sp" />
-                    </LinearLayout>
-                </LinearLayout>
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/line" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="4dp"
-                    android:paddingEnd="8dp">
-
-                    <ImageView
-                        android:id="@+id/load_icon"
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_load"
-                        android:tint="@color/accent" />
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:orientation="vertical">
-
-                        <TextView
-                            style="@style/TileLabel"
-                            android:text="@string/lbl_load" />
-
-                        <TextView
-                            android:id="@+id/load_value"
-                            style="@style/TileValue"
-                            android:textSize="22sp" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="match_parent"
-                    android:background="@color/line" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="12dp"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="4dp">
-
-                    <ImageView
-                        android:id="@+id/intake_icon"
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_air"
-                        android:tint="@color/cold" />
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:orientation="vertical">
-
-                        <TextView
-                            style="@style/TileLabel"
-                            android:text="@string/lbl_intake" />
-
-                        <TextView
-                            android:id="@+id/intake_value"
-                            style="@style/TileValue"
-                            android:textSize="22sp" />
-                    </LinearLayout>
-                </LinearLayout>
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Consumo con grafico -->
-        <LinearLayout
+        <!-- ===== Pagine: se ne vede una alla volta ===== -->
+        <FrameLayout
+            android:id="@+id/pages"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="8dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_card"
-            android:orientation="vertical"
-            android:padding="12dp">
+            android:layout_weight="1">
 
-            <LinearLayout
+            <!-- Pagina 1: foto dell'auto al centro, dati a sinistra (guida) e a destra (motore e serbatoio) -->
+            <FrameLayout
+                android:id="@+id/page_car"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:layout_height="match_parent">
 
                 <ImageView
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:importantForAccessibility="no"
-                    android:src="@drawable/ic_fuel"
-                    android:tint="@color/accent" />
-
-                <TextView
-                    style="@style/SectionLabel"
-                    android:layout_marginStart="6dp"
-                    android:text="@string/lbl_fuel" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:gravity="bottom"
-                android:orientation="horizontal">
+                    android:id="@+id/car_image"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="196dp"
+                    android:layout_marginEnd="196dp"
+                    android:contentDescription="@string/app_name"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/car_panda" />
 
                 <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
+                    android:id="@+id/tiles_left"
+                    android:layout_width="176dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginTop="10dp"
                     android:orientation="vertical">
 
+                    <it.panda.launcher.ui.MetricCellView
+                        android:background="@drawable/bg_cell_translucent"
+                        android:id="@+id/cell_speed"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginBottom="8dp"
+                        android:layout_weight="1"
+                        app:label="@string/label_speed"
+                        app:large="true"
+                        app:unit="@string/unit_kmh" />
+
+                    <it.panda.launcher.ui.MetricCellView
+                        android:background="@drawable/bg_cell_translucent"
+                        android:id="@+id/cell_rpm"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginBottom="8dp"
+                        android:layout_weight="1"
+                        app:label="@string/label_rpm"
+                        app:large="true"
+                        app:unit="@string/unit_rpm" />
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginBottom="8dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_cell_translucent">
+
+                        <it.panda.launcher.ui.GearShiftView
+                            android:id="@+id/gear_shift"
+                            android:layout_width="120dp"
+                            android:layout_height="match_parent"
+                            android:layout_gravity="center"
+                            android:contentDescription="@string/unit_gear" />
+                    </FrameLayout>
+
+                    <it.panda.launcher.ui.MetricCellView
+                        android:background="@drawable/bg_cell_translucent"
+                        android:id="@+id/cell_instant_car"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginBottom="8dp"
+                        android:layout_weight="1"
+                        app:label="@string/label_instant"
+                        app:large="true"
+                        app:unit="@string/unit_l100" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/tiles_right"
+                    android:layout_width="176dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginEnd="12dp"
+                    android:orientation="vertical">
+
+                    <it.panda.launcher.ui.MetricCellView
+                        android:background="@drawable/bg_cell_translucent"
+                        android:id="@+id/cell_fuel"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginBottom="8dp"
+                        android:layout_weight="1"
+                        app:icon="fuel"
+                        app:label="@string/label_fuel"
+                        app:large="true"
+                        app:unit="@string/unit_percent" />
+
+                    <it.panda.launcher.ui.MetricCellView
+                        android:background="@drawable/bg_cell_translucent"
+                        android:id="@+id/cell_coolant"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginBottom="8dp"
+                        android:layout_weight="1"
+                        app:icon="water"
+                        app:label="@string/label_coolant"
+                        app:large="true"
+                        app:unit="@string/unit_celsius" />
+
+                    <it.panda.launcher.ui.MetricCellView
+                        android:background="@drawable/bg_cell_translucent"
+                        android:id="@+id/cell_battery"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginBottom="8dp"
+                        android:layout_weight="1"
+                        app:icon="battery"
+                        app:label="@string/label_battery"
+                        app:large="true"
+                        app:unit="@string/unit_volt" />
+
+                    <it.panda.launcher.ui.MetricCellView
+                        android:background="@drawable/bg_cell_translucent"
+                        android:id="@+id/cell_oil"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginBottom="8dp"
+                        android:layout_weight="1"
+                        app:icon="oil"
+                        app:label="@string/label_oil"
+                        app:large="true"
+                        app:unit="@string/unit_celsius" />
+
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- Pagina 3: consumi. Schede e caselle in alto, grafico grande sotto -->
+            <LinearLayout
+                android:id="@+id/page_trip"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:paddingStart="12dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="12dp"
+                android:visibility="invisible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/tab_drive"
+                        style="@style/ViewToggle"
+                        android:layout_height="36dp"
+                        android:paddingStart="18dp"
+                        android:paddingEnd="18dp"
+                        android:text="@string/tab_drive"
+                        android:textSize="15sp" />
+
+                    <Button
+                        android:id="@+id/tab_trip"
+                        style="@style/ViewToggle"
+                        android:layout_height="36dp"
+                        android:paddingStart="18dp"
+                        android:paddingEnd="18dp"
+                        android:text="@string/tab_trip"
+                        android:textSize="15sp" />
+
+                    <Space
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <ImageButton
+                        android:id="@+id/trip_reset"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/trip_reset"
+                        android:padding="7dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_reset" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
+
+                    <it.panda.launcher.ui.MetricCellView
+                        android:id="@+id/cell_instant"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        app:accent="true"
+                        app:label="@string/label_instant"
+                        app:large="true"
+                        app:unit="@string/unit_l100" />
+
+                    <it.panda.launcher.ui.MetricCellView
+                        android:id="@+id/cell_avg"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        app:label="@string/label_average"
+                        app:large="true"
+                        app:unit="@string/unit_l100" />
+
+                    <it.panda.launcher.ui.MetricCellView
+                        android:id="@+id/cell_distance"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        app:label="@string/label_distance"
+                        app:large="true"
+                        app:unit="@string/unit_km" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
+
+                    <it.panda.launcher.ui.MetricCellView
+                        android:id="@+id/cell_time"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        app:label="@string/label_time"
+                        app:large="true"
+                        app:unit="" />
+
+                    <it.panda.launcher.ui.MetricCellView
+                        android:id="@+id/cell_avg_speed"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        app:label="@string/label_avg_speed"
+                        app:large="true"
+                        app:unit="@string/unit_kmh" />
+
+                    <it.panda.launcher.ui.MetricCellView
+                        android:id="@+id/cell_fuel_used"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        app:label="@string/label_fuel_used"
+                        app:large="true"
+                        app:unit="@string/unit_l" />
+                </LinearLayout>
+
+                <LinearLayout
+                    style="@style/Tile"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:paddingTop="6dp">
+
                     <TextView
-                        style="@style/TileLabel"
-                        android:text="@string/lbl_fuel_now" />
+                        style="@style/SectionLabel"
+                        android:text="@string/chart_caption" />
+
+                    <it.panda.launcher.ui.ConsumptionChartView
+                        android:id="@+id/consumption_chart"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginTop="4dp"
+                        android:layout_weight="1"
+                        app:timeAxis="true" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Pagina 4: navigazione da goESP. Freccia grande e distanza a sinistra, via e dati a destra -->
+            <LinearLayout
+                android:id="@+id/page_nav"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:paddingStart="12dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="12dp"
+                android:visibility="invisible">
+
+                <!-- indicazione in corso -->
+                <LinearLayout
+                    android:id="@+id/nav_active"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:baselineAligned="false"
+                    android:orientation="vertical"
+                    android:visibility="gone">
 
                     <LinearLayout
+                        style="@style/Tile"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:baselineAligned="false"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="20dp"
+                        android:paddingEnd="20dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_horizontal"
+                            android:orientation="vertical">
+
+                            <ImageView
+                                android:id="@+id/nav_arrow"
+                                android:layout_width="170dp"
+                                android:layout_height="170dp"
+                                android:importantForAccessibility="no"
+                                android:scaleType="fitCenter" />
+
+                            <TextView
+                                android:id="@+id/nav_distance"
+                                style="@style/TileValue"
+                                android:layout_marginTop="4dp"
+                                android:includeFontPadding="false"
+                                android:textColor="@color/accent"
+                                android:textSize="44sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/nav_direction"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="28dp"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif-condensed"
+                            android:lineSpacingMultiplier="1.05"
+                            android:maxLines="4"
+                            android:textColor="@color/text"
+                            android:textSize="34sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:baselineAligned="false"
+                        android:orientation="horizontal">
+
+                        <it.panda.launcher.ui.MetricCellView
+                            android:id="@+id/nav_cell_arrival"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            app:label="@string/nav_arrival"
+                            app:large="true"
+                            app:unit="" />
+
+                        <it.panda.launcher.ui.MetricCellView
+                            android:id="@+id/nav_cell_distance"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            app:label="@string/nav_remaining_distance"
+                            app:large="true"
+                            app:unit="" />
+
+                        <it.panda.launcher.ui.MetricCellView
+                            android:id="@+id/nav_cell_time"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            app:label="@string/nav_remaining_time"
+                            app:large="true"
+                            app:unit="" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- nessuna indicazione: stato del collegamento -->
+                <LinearLayout
+                    android:id="@+id/nav_idle"
+                    style="@style/Tile"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingStart="40dp"
+                    android:paddingEnd="40dp">
+
+                    <ImageView
+                        android:layout_width="96dp"
+                        android:layout_height="96dp"
+                        android:alpha="0.35"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_navigation" />
+
+                    <TextView
+                        android:id="@+id/nav_idle_title"
+                        style="@style/TileValue"
+                        android:layout_marginTop="14dp"
+                        android:text="@string/nav_idle_title"
+                        android:textSize="26sp" />
+
+                    <TextView
+                        android:id="@+id/nav_idle_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:gravity="bottom"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:lineSpacingMultiplier="1.15"
+                        android:maxWidth="520dp"
+                        android:textColor="@color/muted"
+                        android:textSize="16sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Pagina 5: avvisi e diagnosi (spia motore, codici di errore, avvisi dai valori) -->
+            <LinearLayout
+                android:id="@+id/page_alerts"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:paddingStart="12dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="12dp"
+                android:visibility="invisible">
+
+                <LinearLayout
+                    style="@style/Tile"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:paddingStart="16dp"
+                    android:paddingTop="12dp"
+                    android:paddingEnd="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
                         android:orientation="horizontal">
 
                         <TextView
-                            android:id="@+id/consumption_value"
-                            style="@style/TileValue"
-                            android:textSize="30sp" />
+                            android:id="@+id/alerts_summary"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:fontFamily="sans-serif-condensed"
+                            android:textColor="@color/text"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
 
-                        <TextView
-                            style="@style/TileUnit"
-                            android:text="@string/unit_l100_km"
-                            android:textSize="11sp" />
+                        <Button
+                            android:id="@+id/alerts_read"
+                            style="@style/ViewToggle"
+                            android:layout_height="44dp"
+                            android:paddingStart="22dp"
+                            android:paddingEnd="22dp"
+                            android:text="@string/alerts_read"
+                            android:textSize="16sp" />
                     </LinearLayout>
-                </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="end"
-                    android:orientation="vertical">
+                    <ScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginTop="6dp"
+                        android:layout_weight="1"
+                        android:scrollbars="none">
+
+                        <!-- riempita dal codice: una riga per avviso -->
+                        <LinearLayout
+                            android:id="@+id/alerts_list"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+                    </ScrollView>
 
                     <TextView
-                        style="@style/TileLabel"
-                        android:text="@string/lbl_fuel_avg" />
-
-                    <TextView
-                        android:id="@+id/consumption_avg"
-                        style="@style/TileValue"
-                        android:textColor="@color/muted"
-                        android:textSize="20sp" />
+                        style="@style/TileSub"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/alerts_note" />
                 </LinearLayout>
             </LinearLayout>
 
-            <it.panda.launcher.ui.FuelChartView
-                android:id="@+id/fuel_chart"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_marginTop="8dp"
-                android:layout_weight="1"
-                android:minHeight="36dp" />
-
+            <!-- puntini creati dal codice, uno per pagina -->
             <LinearLayout
-                android:layout_width="match_parent"
+                android:id="@+id/page_dots"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/lbl_minutes_ago"
-                    android:textColor="@color/muted"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/lbl_now"
-                    android:textColor="@color/muted"
-                    android:textSize="11sp" />
-            </LinearLayout>
-        </LinearLayout>
+                android:layout_gravity="bottom|center_horizontal"
+                android:layout_marginBottom="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal" />
+        </FrameLayout>
     </LinearLayout>
 </LinearLayout>

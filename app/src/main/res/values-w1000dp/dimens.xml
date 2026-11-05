@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="side_column">300dp</dimen>
+    <dimen name="app_column">138dp</dimen>
+    <dimen name="app_cell">82dp</dimen>
+    <dimen name="app_icon">72dp</dimen>
 </resources>

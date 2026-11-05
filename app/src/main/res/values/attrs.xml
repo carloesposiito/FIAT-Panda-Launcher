@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="label" format="string" />
+    <attr name="unit" format="string" />
+
+    <declare-styleable name="MetricCellView">
+        <attr name="label" />
+        <attr name="unit" />
+        <!-- icona disegnata in codice (MetricIconView.Type), stesso ordine -->
+        <attr name="icon" format="enum">
+            <enum name="none" value="0" />
+            <enum name="water" value="1" />
+            <enum name="oil" value="2" />
+            <enum name="battery" value="3" />
+            <enum name="fuel" value="4" />
+            <enum name="air" value="5" />
+            <enum name="load" value="6" />
+        </attr>
+        <!-- valore in ambra (es. consumo istantaneo) -->
+        <attr name="accent" format="boolean" />
+        <!-- versione grande, per le pagine Dati auto e Consumi -->
+        <attr name="large" format="boolean" />
+    </declare-styleable>
+
+    <declare-styleable name="ConsumptionChartView">
+        <!-- scala fissa di 30 minuti con le etichette del tempo sotto -->
+        <attr name="timeAxis" format="boolean" />
+    </declare-styleable>
+
+    <declare-styleable name="GaugeView">
+        <attr name="gaugeMax" format="float" />
+        <!-- da qui in su l'arco è rosso (0 = nessuna zona rossa) -->
+        <attr name="gaugeRedFrom" format="float" />
+        <!-- distanza tra le tacche (0 = nessuna tacca) -->
+        <attr name="gaugeTickStep" format="float" />
+        <!-- arrotonda il numero mostrato (es. 10 per i giri) -->
+        <attr name="gaugeRoundTo" format="integer" />
+        <attr name="gaugeUnit" format="string" />
+    </declare-styleable>
+</resources>

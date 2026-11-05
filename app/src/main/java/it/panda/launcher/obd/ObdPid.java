@@ -20,7 +20,8 @@ public enum ObdPid {
     THROTTLE(0x11, 1),
     FUEL_LEVEL(0x2F, 1),
     MODULE_VOLTAGE(0x42, 2),
-    AMBIENT_TEMP(0x46, 1);
+    OIL_TEMP(0x5C, 1),
+    FUEL_RATE(0x5E, 2);
 
     /** Numero del PID (es. 0x0C per i giri). */
     public final int pid;
@@ -40,7 +41,7 @@ public enum ObdPid {
     /**
      * Converte i byte ricevuti nel valore fisico.
      * Unità: % per carico/farfalla/carburante, °C per le temperature, kPa per la pressione,
-     * rpm, km/h, gradi per l'anticipo, g/s per il flusso d'aria, V per la tensione.
+     * rpm, km/h, gradi per l'anticipo, g/s per il flusso d'aria, V per la tensione, l/h per il consumo.
      */
     public double decode(int[] d) {
         int a = d[0];
@@ -52,7 +53,7 @@ public enum ObdPid {
                 return a * 100.0 / 255.0;
             case COOLANT_TEMP:
             case INTAKE_TEMP:
-            case AMBIENT_TEMP:
+            case OIL_TEMP:
                 return a - 40;
             case INTAKE_PRESSURE:
             case SPEED:
@@ -65,6 +66,8 @@ public enum ObdPid {
                 return (256 * a + b) / 100.0;
             case MODULE_VOLTAGE:
                 return (256 * a + b) / 1000.0;
+            case FUEL_RATE:
+                return (256 * a + b) / 20.0;
             default:
                 throw new IllegalStateException("PID senza formula: " + this);
         }

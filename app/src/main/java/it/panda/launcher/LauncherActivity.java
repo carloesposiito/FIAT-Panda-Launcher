@@ -3,21 +3,23 @@ package it.panda.launcher;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.ColorStateList;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.provider.Settings;
-import android.view.Gravity;
-import android.view.TextureView;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.GridView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -25,77 +27,95 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import it.panda.launcher.apps.AppEntry;
-import it.panda.launcher.apps.AppGridAdapter;
 import it.panda.launcher.apps.AppLoader;
-import it.panda.launcher.apps.FavoriteSelection;
-import it.panda.launcher.car.CarRenderer;
-import it.panda.launcher.media.MediaMonitor;
+import it.panda.launcher.nav.NavData;
+import it.panda.launcher.nav.NavReceiver;
 import it.panda.launcher.obd.BluetoothPermissions;
-import it.panda.launcher.obd.Dtc;
+import it.panda.launcher.obd.Diagnostics;
 import it.panda.launcher.obd.ObdManager;
 import it.panda.launcher.obd.ObdSnapshot;
-import it.panda.launcher.ui.FuelChartView;
-import it.panda.launcher.ui.GearPatternView;
-import it.panda.launcher.ui.SegmentBarView;
-import it.panda.launcher.ui.SparklineView;
-import it.panda.launcher.ui.StudioBackdropView;
+import it.panda.launcher.obd.TripComputer;
+import it.panda.launcher.ui.ConsumptionChartView;
+import it.panda.launcher.ui.GearShiftView;
+import it.panda.launcher.ui.MetricCellView;
 
-/** Schermata Home: app a sinistra, media e auto 3D al centro, dati dell'auto a destra. */
+/**
+ * Schermata Home: app e volume a sinistra; a destra la barra in alto (ora) e le pagine da scorrere
+ * con le frecce in basso: auto (foto con i dati OBD ai lati), consumi, navigazione, avvisi.
+ */
 public class LauncherActivity extends Activity
-        implements CarRenderer.Callback, ObdManager.Listener, MediaMonitor.Listener {
+        implements ObdManager.Listener, NavReceiver.Listener {
 
     private static final int REQUEST_BT = 1;
-    private static final long SPARK_INTERVAL_MS = 500;
-    private static final long FUEL_INTERVAL_MS = 15_000;
-    private static final float RPM_FULL_SCALE = 6000f;
+    private static final Locale IT = Locale.ITALIAN;
 
-    private CarRenderer car;
-    private StudioBackdropView backdrop;
-    private ImageButton rotateButton;
-
+    // colonna app
     private AppLoader appLoader;
-    private final AppGridAdapter appAdapter = new AppGridAdapter();
+    private List<AppEntry> allApps;
+    private LinearLayout appList;
+    private int appListHeight;
 
+    // volume
     private AudioManager audio;
     private TextView volumeValue;
-    private TextView dateView;
-    private TextView mediaTitle, mediaSub;
-    private MediaMonitor media;
-    private boolean mediaNoAccess;
 
+    // pagine
+    private static final int PAGE_CAR = 0, PAGE_TRIP = 1, PAGE_NAV = 2, PAGE_ALERTS = 3;
+    private View[] pages;
+    private int page;
+    private GestureDetector swipe;
+    private LinearLayout pageDots;
+    private boolean activityResumed;
+    private boolean obdEnabled, navEnabled;
+
+    // navigazione (goESP)
+    private NavReceiver nav;
+    private View navActive, navIdle;
+    private ImageView navArrow;
+    private TextView navDistance, navDirection, navIdleTitle, navIdleText;
+    private MetricCellView navArrival, navRemaining, navTime;
+    private NavReceiver.State navState = NavReceiver.State.OFF;
+    private String navDevice;
+    private String navArrowShown;
+
+    // dati ai lati della foto dell'auto
+    private View tilesLeft, tilesRight;
+
+    // ora
+    private TextView date;
+
+    // dati OBD
     private ObdManager obd;
     private String obdAddressAtPause;
     private boolean pausedOnce;
-    private ObdManager.State obdState = ObdManager.State.NOT_CONFIGURED;
-    private String obdDetail;
-    private List<String> dtcs;
+    private GearShiftView gearShift;
+    private MetricCellView cellSpeed, cellRpm, cellInstantCar;
+    private MetricCellView cellCoolant, cellOil, cellBattery, cellFuel;
 
-    private TextView speedValue, rpmValue, gearSub;
-    private GearPatternView gearView;
-    private SegmentBarView rpmBar;
-    private SparklineView rpmSpark;
-    private long lastSparkMs;
-    private TextView batteryValue, coolantValue, loadValue, intakeValue, ambientValue;
-    private ImageView batteryIcon, coolantIcon, loadIcon, intakeIcon;
-    private View dataDot;
-    private TextView consumptionValue, consumptionAvg;
-    private FuelChartView fuelChart;
-    private long lastFuelMs;
+    // avvisi
+    private Button alertsRead;
+    private int diagReadsSeen;
+    private boolean reading;
+    private ObdSnapshot lastSnapshot;
+    private boolean obdConnected;
 
-    private ImageButton warnButton;
-    private TextView warnBadge;
-    private LinearLayout diagPanel, diagList;
-    private TextView diagEmptyTitle, diagEmptySub;
-    private Button diagClear;
-    private boolean diagOpen;
+    // consumi
+    private Button tabDrive, tabTrip;
+    private View tripReset;
+    private MetricCellView cellInstant, cellAvg, cellDistance, cellTime, cellAvgSpeed, cellFuelUsed;
+    private ConsumptionChartView chart;
+    private TripComputer.Summary lastDrive, lastTrip;
+    private List<Double> lastHistory;
 
-    /** Aggiorna la griglia quando si installa o si disinstalla un'app. */
+    /** Aggiorna la colonna quando si installa o si disinstalla un'app. */
     private final BroadcastReceiver packageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -103,7 +123,15 @@ public class LauncherActivity extends Activity
         }
     };
 
-    /** Aggiorna data (e volume) quando cambia il minuto o il giorno. */
+    /** Il volume è cambiato (anche dai tasti fisici o dal volante). */
+    private final BroadcastReceiver volumeReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            updateVolume();
+        }
+    };
+
+    /** Ogni minuto e al cambio di data: aggiorna giorno e data. */
     private final BroadcastReceiver timeReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -115,43 +143,41 @@ public class LauncherActivity extends Activity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_launcher);
-        audio = (AudioManager) getSystemService(AUDIO_SERVICE);
 
-        setupApps();
-        setupCar();
-        setupMedia();
+        setupAppColumn();
+        setupVolume();
+        setupClock();
         setupData();
-        setupWarnings();
-
-        findViewById(R.id.settings_button).setOnClickListener(
-                v -> startActivity(new Intent(this, SettingsActivity.class)));
-        findViewById(R.id.screen_off_button).setOnClickListener(
-                v -> startActivity(new Intent(this, BlankActivity.class)));
+        setupTrip();
+        setupNav();
+        setupPages();
 
         obd = new ObdManager(this);
         obd.setListener(this);
-        if (!BluetoothPermissions.canConnect(this)) {
+        if (!BluetoothPermissions.canAdvertise(this)) {
             requestPermissions(BluetoothPermissions.runtimePermissions(), REQUEST_BT);
         }
         obd.start();
-        showNoData();
-        refreshWarnings();
+        showTrip(obd.driveSummary(), obd.tripSummary());
     }
 
-    // ---------------------------------------------------------------- app
+    // ================================================================ colonna app
 
-    private void setupApps() {
-        GridView grid = findViewById(R.id.app_grid);
-        grid.setAdapter(appAdapter);
-        grid.setOnItemClickListener((parent, view, position, id) -> openApp(appAdapter.getItem(position)));
-        grid.setOnItemLongClickListener((parent, view, position, id) -> {
-            // pressione lunga: informazioni sull'app (disinstalla, permessi...)
-            AppEntry app = appAdapter.getItem(position);
-            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                    Uri.fromParts("package", app.component.getPackageName(), null));
-            startActivity(i);
-            return true;
+    private void setupAppColumn() {
+        appList = findViewById(R.id.app_list);
+        // quante icone entrano dipende dall'altezza: si ricalcola quando cambia
+        appList.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            int h = b - t;
+            if (h != appListHeight) {
+                appListHeight = h;
+                appList.post(this::fillAppColumn);
+            }
         });
+
+        // TODO: tasto screen_off_button senza funzione finché non si sa come spegnere davvero lo schermo
+        // (ScreenLock.lockOrAsk(this) lo bloccherebbe soltanto)
+        findViewById(R.id.settings_button).setOnClickListener(
+                v -> startActivity(new Intent(this, SettingsActivity.class)));
 
         appLoader = new AppLoader(this);
         loadApps();
@@ -161,16 +187,66 @@ public class LauncherActivity extends Activity
         filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         filter.addAction(Intent.ACTION_PACKAGE_CHANGED);
         filter.addDataScheme("package");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(packageReceiver, filter, Context.RECEIVER_EXPORTED);
-        } else {
-            registerReceiver(packageReceiver, filter);
-        }
+        register(packageReceiver, filter);
     }
 
     private void loadApps() {
-        appLoader.load(all -> appAdapter.setApps(
-                FavoriteSelection.select(all, Prefs.getFavoriteApps(this), AppEntry::key)));
+        appLoader.load(apps -> {
+            allApps = apps;
+            fillAppColumn();
+        });
+    }
+
+    /** Riempie la colonna con le app scelte, fino a quante ne entrano. */
+    private void fillAppColumn() {
+        if (allApps == null || appListHeight <= 0) {
+            return;
+        }
+        int cell = getResources().getDimensionPixelSize(R.dimen.app_cell);
+        int icon = getResources().getDimensionPixelSize(R.dimen.app_icon);
+        int slots = Math.max(1, appListHeight / cell);
+        if (slots != Prefs.getAppSlots(this)) {
+            Prefs.setAppSlots(this, slots);
+        }
+
+        appList.removeAllViews();
+        int pad = Math.max(0, (cell - icon) / 2);
+        for (AppEntry app : chosenApps(slots)) {
+            ImageView v = new ImageView(this);
+            v.setImageDrawable(app.icon);
+            v.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            v.setPadding(pad, pad, pad, pad);
+            v.setBackgroundResource(R.drawable.bg_app_item);
+            v.setContentDescription(app.label);
+            v.setOnClickListener(x -> openApp(app));
+            v.setOnLongClickListener(x -> {
+                // pressione lunga: informazioni sull'app (disinstalla, permessi...)
+                startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.fromParts("package", app.component.getPackageName(), null)));
+                return true;
+            });
+            appList.addView(v, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, cell));
+        }
+    }
+
+    /** Le app scelte nelle impostazioni (quelle ancora installate); se mai scelte, le prime in ordine alfabetico. */
+    private List<AppEntry> chosenApps(int max) {
+        List<ComponentName> favorites = Prefs.getFavorites(this);
+        if (favorites == null) {
+            return allApps.subList(0, Math.min(max, allApps.size()));
+        }
+        Map<ComponentName, AppEntry> byComponent = new HashMap<>();
+        for (AppEntry a : allApps) {
+            byComponent.put(a.component, a);
+        }
+        List<AppEntry> out = new ArrayList<>();
+        for (ComponentName cn : favorites) {
+            AppEntry a = byComponent.get(cn);
+            if (a != null && out.size() < max) {
+                out.add(a);
+            }
+        }
+        return out;
     }
 
     private void openApp(AppEntry app) {
@@ -185,63 +261,46 @@ public class LauncherActivity extends Activity
         }
     }
 
-    // ---------------------------------------------------------------- auto 3D
+    // ================================================================ volume
 
-    private void setupCar() {
-        backdrop = findViewById(R.id.backdrop);
-        TextureView carView = findViewById(R.id.car_view);
-        car = new CarRenderer(this, carView, "models/panda.glb", this);
-        car.setAutoRotate(Prefs.getAutoRotate(this));
-
-        rotateButton = findViewById(R.id.rotate_button);
-        rotateButton.setSelected(car.isAutoRotate());
-        rotateButton.setOnClickListener(v -> {
-            boolean on = !car.isAutoRotate();
-            car.setAutoRotate(on);
-            Prefs.setAutoRotate(this, on);
-            rotateButton.setSelected(on);
-        });
-    }
-
-    /** Se si trascina l'auto la rotazione automatica si spegne e resta spenta finché non si preme il tasto. */
-    @Override
-    public void onFreeRotation() {
-        car.setAutoRotate(false);
-        rotateButton.setSelected(false);
-    }
-
-    @Override
-    public void onGroundProjected(float cx, float cy, float rx, float ry) {
-        backdrop.setGround(cx, cy, rx, ry);
-    }
-
-    @Override
-    public void onModelError(String message) {
-        TextView error = findViewById(R.id.model_error);
-        error.setText(getString(R.string.model_missing) + "\n(" + message + ")");
-        error.setVisibility(View.VISIBLE);
-    }
-
-    // ---------------------------------------------------------------- media, volume, data
-
-    private void setupMedia() {
-        mediaTitle = findViewById(R.id.media_title);
-        mediaSub = findViewById(R.id.media_sub);
+    private void setupVolume() {
         volumeValue = findViewById(R.id.volume_value);
-        dateView = findViewById(R.id.date);
-        media = new MediaMonitor(this, this);
+        audio = (AudioManager) getSystemService(AUDIO_SERVICE);
+        setupRepeat(findViewById(R.id.volume_down), AudioManager.ADJUST_LOWER);
+        setupRepeat(findViewById(R.id.volume_up), AudioManager.ADJUST_RAISE);
+        register(volumeReceiver, new IntentFilter("android.media.VOLUME_CHANGED_ACTION"));
+        updateVolume();
+    }
 
-        findViewById(R.id.media_card).setOnClickListener(v -> {
-            if (mediaNoAccess) {
-                try {
-                    startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
-                } catch (RuntimeException e) {
-                    Toast.makeText(this, R.string.app_open_failed, Toast.LENGTH_SHORT).show();
-                }
+    /** Tocco: un passo. Tenendo premuto: dopo 400 ms un passo ogni 120 ms finché non si lascia. */
+    @SuppressWarnings("ClickableViewAccessibility")
+    private void setupRepeat(View button, int direction) {
+        Runnable repeat = new Runnable() {
+            @Override
+            public void run() {
+                changeVolume(direction);
+                button.postDelayed(this, 120);
+            }
+        };
+        button.setOnClickListener(v -> {
+            // il passo è già stato fatto alla pressione (serve per l'accessibilità e le tastiere)
+        });
+        button.setOnTouchListener((v, e) -> {
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    v.setPressed(true);
+                    changeVolume(direction);
+                    v.postDelayed(repeat, 400);
+                    return true;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    v.setPressed(false);
+                    v.removeCallbacks(repeat);
+                    return true;
+                default:
+                    return true;
             }
         });
-        findViewById(R.id.volume_up).setOnClickListener(v -> changeVolume(AudioManager.ADJUST_RAISE));
-        findViewById(R.id.volume_down).setOnClickListener(v -> changeVolume(AudioManager.ADJUST_LOWER));
     }
 
     private void changeVolume(int direction) {
@@ -253,336 +312,548 @@ public class LauncherActivity extends Activity
         volumeValue.setText(String.valueOf(audio.getStreamVolume(AudioManager.STREAM_MUSIC)));
     }
 
-    @Override
-    public void onMedia(String title, String subtitle) {
-        mediaNoAccess = false;
-        mediaTitle.setText(title != null ? title : getString(R.string.media_idle));
-        mediaSub.setText(subtitle != null ? subtitle : "");
+    // ================================================================ pagine
+
+    private void setupPages() {
+        pages = new View[]{findViewById(R.id.page_car), findViewById(R.id.page_trip),
+                findViewById(R.id.page_nav), findViewById(R.id.page_alerts)};
+        pageDots = findViewById(R.id.page_dots);
+        float density = getResources().getDisplayMetrics().density;
+        for (int i = 0; i < pages.length; i++) {
+            View dot = new View(this);
+            dot.setBackgroundResource(R.drawable.bg_page_dot);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Math.round(8 * density), Math.round(8 * density));
+            lp.setMargins(Math.round(5 * density), 0, Math.round(5 * density), 0);
+            pageDots.addView(dot, lp);
+        }
+        swipe = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float vx, float vy) {
+                if (e1 == null) {
+                    return false;
+                }
+                float d = getResources().getDisplayMetrics().density;
+                float dx = e2.getX() - e1.getX(), dy = e2.getY() - e1.getY();
+                boolean horizontal = Math.abs(dx) > 100 * d && Math.abs(dx) > 1.5f * Math.abs(dy);
+                boolean fromPages = e1.getX() > getResources().getDimension(R.dimen.app_column);
+                if (horizontal && fromPages && Math.abs(vx) > 300 * d) {
+                    // dita verso sinistra = pagina successiva
+                    int dir = dx < 0 ? 1 : -1;
+                    showPage(step(dir), dir);
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        page = Math.max(0, Math.min(pages.length - 1, Prefs.getPage(this)));
+        for (int i = 0; i < pages.length; i++) {
+            pages[i].setVisibility(i == page ? View.VISIBLE : View.INVISIBLE);
+        }
+        applyAvailability();
+    }
+
+    /** Pagine disponibili: l'auto sempre; consumi e avvisi solo con l'OBD; navigazione solo se attiva. */
+    private boolean isAvailable(int p) {
+        switch (p) {
+            case PAGE_CAR:
+                return true;
+            case PAGE_NAV:
+                return navEnabled;
+            default:
+                return obdEnabled;
+        }
+    }
+
+    /** Pagina disponibile successiva (dir = 1) o precedente (dir = -1), girando in tondo. */
+    private int step(int dir) {
+        int p = page;
+        for (int i = 0; i < pages.length; i++) {
+            p = (p + dir + pages.length) % pages.length;
+            if (isAvailable(p)) {
+                return p;
+            }
+        }
+        return page;
+    }
+
+    /**
+     * Applica le impostazioni: triangolo e caselle solo con l'OBD,
+     * e se la pagina mostrata non è più disponibile si torna all'auto (la pagina salvata resta,
+     * così riattivando la funzione si torna lì).
+     */
+    private void applyAvailability() {
+        obdEnabled = Prefs.getObdEnabled(this);
+        navEnabled = Prefs.getNavEnabled(this);
+        int available = 0;
+        for (int i = 0; i < pages.length; i++) {
+            boolean on = isAvailable(i);
+            pageDots.getChildAt(i).setVisibility(on ? View.VISIBLE : View.GONE);
+            available += on ? 1 : 0;
+        }
+        pageDots.setVisibility(available > 1 ? View.VISIBLE : View.GONE);
+        tilesLeft.setVisibility(obdEnabled ? View.VISIBLE : View.GONE);
+        tilesRight.setVisibility(obdEnabled ? View.VISIBLE : View.GONE);
+
+        int saved = Math.max(0, Math.min(pages.length - 1, Prefs.getPage(this)));
+        int wanted = isAvailable(saved) ? saved : PAGE_CAR;
+        if (wanted != page) {
+            for (int i = 0; i < pages.length; i++) {
+                pages[i].setVisibility(i == wanted ? View.VISIBLE : View.INVISIBLE);
+            }
+            page = wanted;
+        }
+        updatePageDots();
+
+        // ricevitore della navigazione acceso/spento come da impostazioni
+        if (navEnabled) {
+            nav.start();
+        } else {
+            nav.stop();
+        }
+    }
+
+    /** Cambia pagina con una breve animazione; dir = 1 avanti (entra da destra), -1 indietro. */
+    private void showPage(int next, int dir) {
+        if (next == page) {
+            return;
+        }
+        View out = pages[page];
+        View in = pages[next];
+        float shift = getResources().getDisplayMetrics().density * 48 * dir;
+        out.animate().cancel();
+        in.animate().cancel();
+        out.animate().alpha(0f).translationX(-shift).setDuration(160).withEndAction(() -> {
+            out.setVisibility(View.INVISIBLE);
+            out.setAlpha(1f);
+            out.setTranslationX(0);
+        }).start();
+        in.setAlpha(0f);
+        in.setTranslationX(shift);
+        in.setVisibility(View.VISIBLE);
+        in.animate().alpha(1f).translationX(0).setDuration(200).start();
+
+        page = next;
+        Prefs.setPage(this, page); // all'avvio si riapre l'ultima pagina vista
+        updatePageDots();
+    }
+
+    private void updatePageDots() {
+        for (int i = 0; i < pageDots.getChildCount(); i++) {
+            pageDots.getChildAt(i).setSelected(i == page);
+        }
+    }
+
+    // ================================================================ navigazione (goESP)
+
+    private void setupNav() {
+        navActive = findViewById(R.id.nav_active);
+        navIdle = findViewById(R.id.nav_idle);
+        navArrow = findViewById(R.id.nav_arrow);
+        navDistance = findViewById(R.id.nav_distance);
+        navDirection = findViewById(R.id.nav_direction);
+        navIdleTitle = findViewById(R.id.nav_idle_title);
+        navIdleText = findViewById(R.id.nav_idle_text);
+        navArrival = findViewById(R.id.nav_cell_arrival);
+        navRemaining = findViewById(R.id.nav_cell_distance);
+        navTime = findViewById(R.id.nav_cell_time);
+        nav = NavReceiver.get(this);
+        nav.setListener(this);
     }
 
     @Override
-    public void onNoAccess() {
-        mediaNoAccess = true;
-        mediaTitle.setText(R.string.media_idle);
-        mediaSub.setText(R.string.media_need_access);
+    public void onNavState(NavReceiver.State state, String deviceName) {
+        navState = state;
+        navDevice = deviceName;
+        onNavData(nav.last());
+    }
+
+    @Override
+    public void onNavData(NavData d) {
+        if (d == null) {
+            navActive.setVisibility(View.GONE);
+            navIdle.setVisibility(View.VISIBLE);
+            navArrowShown = null;
+            int text;
+            switch (navState) {
+                case CONNECTED:
+                    text = R.string.nav_idle_waiting;
+                    break;
+                case UNSUPPORTED:
+                    text = R.string.nav_unsupported;
+                    break;
+                case BT_OFF:
+                case NO_BLUETOOTH:
+                    text = R.string.nav_bt_off;
+                    break;
+                case NO_PERMISSION:
+                    text = R.string.nav_no_permission;
+                    break;
+                case ERROR:
+                    text = R.string.nav_error;
+                    break;
+                default:
+                    text = R.string.nav_idle_off;
+                    break;
+            }
+            navIdleTitle.setText(navState == NavReceiver.State.CONNECTED && navDevice != null
+                    ? getString(R.string.nav_connected, navDevice) : getString(R.string.nav_idle_title));
+            navIdleText.setText(text);
+            return;
+        }
+        navIdle.setVisibility(View.GONE);
+        navActive.setVisibility(View.VISIBLE);
+        if (!d.image.equals(navArrowShown)) {
+            navArrowShown = d.image;
+            navArrow.setImageBitmap(loadArrow(d.image));
+        }
+        navDistance.setText(d.distanceText());
+        navDirection.setText(d.direction);
+        navArrival.setValue(d.arrival.isEmpty() ? dash() : d.arrival);
+        navRemaining.setValue(d.remainingDistance.isEmpty() ? dash() : d.remainingDistance);
+        navTime.setValue(d.remainingTime.isEmpty() ? dash() : d.remainingTime);
+    }
+
+    /** Freccia dalle immagini di goESP (assets/directions); se sconosciuta, la freccia "dritto". */
+    private android.graphics.Bitmap loadArrow(String name) {
+        for (String n : new String[]{name, "CONTINUE_STRAIGHT"}) {
+            if (n == null || n.isEmpty() || n.contains("/") || n.contains("..")) {
+                continue;
+            }
+            try (java.io.InputStream in = getAssets().open("directions/" + n + ".png")) {
+                return android.graphics.BitmapFactory.decodeStream(in);
+            } catch (java.io.IOException ignored) {
+                // prova la successiva
+            }
+        }
+        return null;
+    }
+
+    // ================================================================ ora e data
+
+    private void setupClock() {
+        date = findViewById(R.id.date);
+        IntentFilter f = new IntentFilter();
+        f.addAction(Intent.ACTION_TIME_TICK);
+        f.addAction(Intent.ACTION_TIME_CHANGED);
+        f.addAction(Intent.ACTION_TIMEZONE_CHANGED);
+        f.addAction(Intent.ACTION_DATE_CHANGED);
+        register(timeReceiver, f);
+        updateDate();
     }
 
     private void updateDate() {
-        String s = new SimpleDateFormat("EEEE d MMMM", Locale.ITALIAN).format(new Date());
-        dateView.setText(s.substring(0, 1).toUpperCase(Locale.ITALIAN) + s.substring(1));
+        String text = new SimpleDateFormat("EEEE d MMMM", IT).format(new Date());
+        date.setText(text.isEmpty() ? text : text.substring(0, 1).toUpperCase(IT) + text.substring(1));
     }
 
-    // ---------------------------------------------------------------- dati dell'auto
+    // ================================================================ dati motore
 
     private void setupData() {
-        speedValue = findViewById(R.id.speed_value);
-        gearView = findViewById(R.id.gear_view);
-        gearSub = findViewById(R.id.gear_sub);
-        rpmValue = findViewById(R.id.rpm_value);
-        rpmBar = findViewById(R.id.rpm_bar);
-        rpmSpark = findViewById(R.id.rpm_spark);
-        batteryValue = findViewById(R.id.battery_value);
-        batteryIcon = findViewById(R.id.battery_icon);
-        coolantValue = findViewById(R.id.coolant_value);
-        coolantIcon = findViewById(R.id.coolant_icon);
-        loadValue = findViewById(R.id.load_value);
-        loadIcon = findViewById(R.id.load_icon);
-        intakeValue = findViewById(R.id.intake_value);
-        intakeIcon = findViewById(R.id.intake_icon);
-        ambientValue = findViewById(R.id.ambient_value);
-        dataDot = findViewById(R.id.data_dot);
-        consumptionValue = findViewById(R.id.consumption_value);
-        consumptionAvg = findViewById(R.id.consumption_avg);
-        fuelChart = findViewById(R.id.fuel_chart);
+        tilesLeft = findViewById(R.id.tiles_left);
+        tilesRight = findViewById(R.id.tiles_right);
+        cellSpeed = findViewById(R.id.cell_speed);
+        cellRpm = findViewById(R.id.cell_rpm);
+        gearShift = findViewById(R.id.gear_shift);
+        cellInstantCar = findViewById(R.id.cell_instant_car);
+        cellCoolant = findViewById(R.id.cell_coolant);
+        cellOil = findViewById(R.id.cell_oil);
+        cellBattery = findViewById(R.id.cell_battery);
+        cellFuel = findViewById(R.id.cell_fuel);
+        for (MetricCellView c : new MetricCellView[]{cellSpeed, cellRpm, cellInstantCar, cellCoolant, cellOil, cellBattery, cellFuel}) {
+            c.clear();
+        }
+
+        alertsRead = findViewById(R.id.alerts_read);
+        alertsRead.setOnClickListener(v -> {
+            reading = true;
+            alertsRead.setEnabled(false);
+            alertsRead.setText(R.string.alerts_reading);
+            obd.requestDiagnostics();
+        });
+        updateAlerts();
     }
 
     @Override
     public void onObdState(ObdManager.State state, String detail) {
-        obdState = state;
-        obdDetail = detail;
-        int color;
-        switch (state) {
-            case CONNECTED:
-                color = R.color.ok;
-                break;
-            case CONNECTING:
-                color = R.color.accent;
-                break;
-            case NOT_CONFIGURED:
-                color = R.color.muted;
-                break;
-            default:
-                color = R.color.crit;
-                break;
+        // lo stato si legge nelle impostazioni (sezione OBD)
+        obdConnected = state == ObdManager.State.CONNECTED;
+        if (!obdConnected) {
+            showNoLiveData();
+            lastSnapshot = null;
+            diagReadsSeen = 0;
+            reading = false;
         }
-        dataDot.setBackgroundTintList(ColorStateList.valueOf(getColor(color)));
-        if (state != ObdManager.State.CONNECTED) {
-            dtcs = null;
-            showNoData();
-        }
-        refreshWarnings();
+        updateAlerts();
     }
 
     @Override
     public void onObdData(ObdSnapshot s) {
-        speedValue.setText(s.speedKmh != null ? String.valueOf(Math.round(s.speedKmh)) : dash());
-        if (s.gear == null || s.gear < 0) {
-            gearView.setGear(-1);
-            gearSub.setText(dash());
-        } else {
-            gearView.setGear(s.gear);
-            gearSub.setText(s.gear == 0 ? getString(R.string.gear_neutral) : getString(R.string.gear_format, s.gear));
-        }
+        // marcia, velocità, giri
+        cellSpeed.setValue(s.speedKmh != null ? String.valueOf(Math.round(s.speedKmh)) : dash());
+        // la marcia si legge sullo schema della leva (folle = barra centrale accesa)
+        gearShift.setGear(s.gear == null || s.gear < 0 ? null : s.gear);
+        // giri arrotondati a 10; rosso nella zona di fuori giri
+        cellRpm.setValue(s.rpm != null ? String.valueOf(Math.round(s.rpm / 10.0) * 10) : dash());
+        cellRpm.setValueColor(s.rpm != null && s.rpm >= 6000 ? getColor(R.color.crit) : null);
 
-        if (s.rpm != null) {
-            long rounded = Math.round(s.rpm / 10.0) * 10;
-            rpmValue.setText(String.format(Locale.ITALY, "%,d", rounded));
-            rpmBar.setFraction((float) (s.rpm / RPM_FULL_SCALE));
-            long now = SystemClock.uptimeMillis();
-            if (now - lastSparkMs >= SPARK_INTERVAL_MS) {
-                lastSparkMs = now;
-                rpmSpark.add(s.rpm.floatValue());
-            }
-        } else {
-            rpmValue.setText(dash());
-            rpmBar.setFraction(0);
-        }
 
-        if (s.batteryV != null) {
-            batteryValue.setText(oneDecimal(s.batteryV));
-            // 11,8 V = vuota, 14,4 V = piena
-            double fill = Math.max(0.05, Math.min(1.0, (s.batteryV - 11.8) / 2.6));
-            batteryIcon.setImageLevel((int) Math.round(fill * 10000));
-            tint(batteryIcon, s.batteryV >= 12.6 ? R.color.ok : s.batteryV >= 12.0 ? R.color.warn : R.color.crit);
-        } else {
-            batteryValue.setText(dash());
-        }
-
+        // dati auto: icona colorata e riempita in base al valore
         if (s.coolantC != null) {
-            coolantValue.setText(String.valueOf(Math.round(s.coolantC)));
-            tint(coolantIcon, s.coolantC < 70 ? R.color.cold : s.coolantC > 105 ? R.color.crit : R.color.ok);
+            cellCoolant.setValue(String.valueOf(Math.round(s.coolantC)));
+            cellCoolant.setStatus(getColor(s.coolantC < 70 ? R.color.cold : s.coolantC >= 103 ? R.color.crit : R.color.ok),
+                    level(s.coolantC, 40, 120));
         } else {
-            coolantValue.setText(dash());
+            cellCoolant.clear();
         }
-
-        loadValue.setText(s.loadPct != null ? String.valueOf(Math.round(s.loadPct)) : dash());
-        tint(loadIcon, R.color.accent);
-        intakeValue.setText(s.intakeC != null ? String.valueOf(Math.round(s.intakeC)) : dash());
-        tint(intakeIcon, R.color.cold);
-        ambientValue.setText(s.ambientC != null ? String.valueOf(Math.round(s.ambientC)) : dash());
-
-        consumptionValue.setText(s.consumptionL100 != null ? oneDecimal(s.consumptionL100) : dash());
-        consumptionAvg.setText(s.averageL100 != null ? oneDecimal(s.averageL100) : dash());
-        fuelChart.setAverage(s.averageL100 != null ? s.averageL100.floatValue() : Float.NaN);
-        long now = SystemClock.uptimeMillis();
-        if (s.consumptionL100 != null && now - lastFuelMs >= FUEL_INTERVAL_MS) {
-            lastFuelMs = now;
-            fuelChart.add(s.consumptionL100.floatValue());
+        if (s.oilC != null) {
+            cellOil.setValue(String.valueOf(Math.round(s.oilC)));
+            cellOil.setStatus(getColor(s.oilC < 60 ? R.color.cold : s.oilC >= 130 ? R.color.crit : R.color.ok),
+                    level(s.oilC, 40, 140));
+        } else {
+            cellOil.clear();
         }
+        if (s.batteryV != null) {
+            cellBattery.setValue(oneDecimal(s.batteryV));
+            boolean running = s.rpm != null && s.rpm > 500;
+            // >= 13,2 V alternatore in carica (fulmine); a motore spento 12,7 V = carica piena, 11,8 V = scarica
+            boolean charging = s.batteryV >= 13.2;
+            int color = charging ? R.color.ok
+                    : running ? R.color.crit
+                    : s.batteryV >= 12.2 ? R.color.muted : R.color.crit;
+            cellBattery.setStatus(getColor(color), charging ? 1f : level(s.batteryV, 11.8, 12.7), charging);
+        } else {
+            cellBattery.clear();
+        }
+        if (s.fuelLevelPct != null) {
+            cellFuel.setValue(String.valueOf(Math.round(s.fuelLevelPct)));
+            cellFuel.setStatus(getColor(s.fuelLevelPct < 10 ? R.color.crit : s.fuelLevelPct < 20 ? R.color.accent : R.color.ok),
+                    (float) (s.fuelLevelPct / 100.0));
+        } else {
+            cellFuel.clear();
+        }
+        // consumo istantaneo: l/100 km in movimento, l/h da fermi
+        if (s.consumptionL100 != null) {
+            showInstant(oneDecimal(Math.min(99.9, s.consumptionL100)), R.string.unit_l100);
+        } else if (s.fuelRateLph != null) {
+            showInstant(oneDecimal(s.fuelRateLph), R.string.unit_lh);
+        } else {
+            showInstant(dash(), R.string.unit_l100);
+        }
+        lastHistory = s.history;
+        showTrip(s.drive, s.trip);
 
-        dtcs = s.dtcs;
-        refreshWarnings();
+        lastSnapshot = s;
+        if (s.diagReads != diagReadsSeen) { // lettura di spia e codici completata
+            diagReadsSeen = s.diagReads;
+            reading = false;
+        }
+        updateAlerts();
     }
 
-    /** Senza collegamento tutti i campi restano visibili, con i trattini al posto dei valori. */
-    private void showNoData() {
-        String dash = dash();
-        speedValue.setText(dash);
-        rpmValue.setText(dash);
-        rpmBar.setFraction(0);
-        gearView.setGear(-1);
-        gearSub.setText(dash);
-        batteryValue.setText(dash);
-        batteryIcon.setImageLevel(0);
-        coolantValue.setText(dash);
-        loadValue.setText(dash);
-        intakeValue.setText(dash);
-        ambientValue.setText(dash);
-        consumptionValue.setText(dash);
-        consumptionAvg.setText(dash);
-        fuelChart.setAverage(Float.NaN);
-        tint(batteryIcon, R.color.line);
-        tint(coolantIcon, R.color.line);
-        tint(loadIcon, R.color.line);
-        tint(intakeIcon, R.color.line);
+    /** Consumo istantaneo: sia nella casella accanto all'auto sia in quella della pagina consumi. */
+    private void showInstant(String value, int unitRes) {
+        for (MetricCellView c : new MetricCellView[]{cellInstant, cellInstantCar}) {
+            c.setValue(value);
+            c.setUnit(getString(unitRes));
+        }
     }
 
-    private void tint(ImageView icon, int colorRes) {
-        icon.setImageTintList(ColorStateList.valueOf(getColor(colorRes)));
+    /** Valore riportato tra 0 e 1 per riempire le icone. */
+    private static float level(double v, double min, double max) {
+        return (float) Math.max(0, Math.min(1, (v - min) / (max - min)));
     }
+
+    /** OBD scollegato: via i dati in tempo reale (il trip resta). */
+    private void showNoLiveData() {
+        cellSpeed.setValue(dash());
+        gearShift.setGear(null);
+        cellRpm.setValue(dash());
+        cellRpm.setValueColor(null);
+        showInstant(dash(), R.string.unit_l100);
+    }
+
+    // ================================================================ avvisi
+
+    /** Aggiorna il tasto "Leggi allarmi" e la lista della pagina Avvisi. */
+    private void updateAlerts() {
+        alertsRead.setEnabled(obdConnected && !reading);
+        alertsRead.setText(reading ? R.string.alerts_reading : R.string.alerts_read);
+        fillAlertsPage(Diagnostics.evaluate(lastSnapshot));
+    }
+
+    /** Firma degli avvisi mostrati: la lista si ricostruisce solo quando cambia. */
+    private String alertsShown;
+
+    /** Pagina Avvisi: titolo riassuntivo e una riga per avviso (spia motore, codici, avvisi dai valori). */
+    private void fillAlertsPage(List<Diagnostics.Alert> alerts) {
+        StringBuilder sig = new StringBuilder(obdConnected ? "on" : "off").append(diagReadsSeen > 0 ? "R" : "U");
+        for (Diagnostics.Alert a : alerts) {
+            sig.append('|').append(a.severity).append(a.code).append(a.title).append(a.detail);
+        }
+        if (sig.toString().equals(alertsShown)) {
+            return;
+        }
+        alertsShown = sig.toString();
+
+        TextView summary = findViewById(R.id.alerts_summary);
+        LinearLayout list = findViewById(R.id.alerts_list);
+        list.removeAllViews();
+        Diagnostics.Severity worst = Diagnostics.worst(alerts);
+        if (!obdConnected) {
+            summary.setText(R.string.alerts_summary_offline);
+            summary.setTextColor(getColor(R.color.muted));
+            list.addView(alertText(getString(R.string.alerts_offline), R.color.muted, 16, false));
+            return;
+        }
+        if (alerts.isEmpty() && diagReadsSeen == 0) {
+            summary.setText(R.string.alerts_summary_unread);
+            summary.setTextColor(getColor(R.color.muted));
+            list.addView(alertText(getString(R.string.alerts_unread), R.color.muted, 16, false));
+            return;
+        }
+        if (alerts.isEmpty()) {
+            summary.setText(R.string.alerts_summary_none);
+            summary.setTextColor(getColor(R.color.ok));
+            list.addView(alertText(getString(R.string.alerts_none), R.color.muted, 16, false));
+            return;
+        }
+        summary.setText(alerts.size() == 1 ? getString(R.string.alerts_summary_one)
+                : getString(R.string.alerts_summary_count, alerts.size()));
+        summary.setTextColor(getColor(worst == Diagnostics.Severity.RED ? R.color.crit : R.color.accent));
+
+        float d = getResources().getDisplayMetrics().density;
+        for (Diagnostics.Alert a : alerts) {
+            LinearLayout item = new LinearLayout(this);
+            item.setOrientation(LinearLayout.HORIZONTAL);
+            item.setPadding(0, Math.round(10 * d), 0, Math.round(10 * d));
+
+            View bar = new View(this);
+            bar.setBackgroundColor(getColor(a.severity == Diagnostics.Severity.RED ? R.color.crit : R.color.accent));
+            LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(Math.round(4 * d), LinearLayout.LayoutParams.MATCH_PARENT);
+            barLp.setMarginEnd(Math.round(14 * d));
+            item.addView(bar, barLp);
+
+            LinearLayout texts = new LinearLayout(this);
+            texts.setOrientation(LinearLayout.VERTICAL);
+            String title = a.code != null ? a.code + "  ·  " + a.title : a.title;
+            texts.addView(alertText(title, R.color.text, 18, true));
+            texts.addView(alertText(a.detail, R.color.muted, 15, false));
+            item.addView(texts, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            list.addView(item);
+        }
+    }
+
+    private TextView alertText(String text, int color, int sp, boolean bold) {
+        TextView t = new TextView(this);
+        t.setText(text);
+        t.setTextColor(getColor(color));
+        t.setTextSize(sp);
+        t.setLineSpacing(0, 1.15f);
+        if (bold) {
+            t.setTypeface(Typeface.DEFAULT_BOLD);
+        }
+        t.setPadding(0, Math.round(2 * getResources().getDisplayMetrics().density), 0, 0);
+        return t;
+    }
+
+    // ================================================================ consumi e trip
+
+    private void setupTrip() {
+        tabDrive = findViewById(R.id.tab_drive);
+        tabTrip = findViewById(R.id.tab_trip);
+        tripReset = findViewById(R.id.trip_reset);
+        cellInstant = findViewById(R.id.cell_instant);
+        cellAvg = findViewById(R.id.cell_avg);
+        cellDistance = findViewById(R.id.cell_distance);
+        cellTime = findViewById(R.id.cell_time);
+        cellAvgSpeed = findViewById(R.id.cell_avg_speed);
+        cellFuelUsed = findViewById(R.id.cell_fuel_used);
+        chart = findViewById(R.id.consumption_chart);
+
+        tabDrive.setOnClickListener(v -> selectTripTab(false));
+        tabTrip.setOnClickListener(v -> selectTripTab(true));
+        // azzeramento solo con conferma: in auto un tocco per sbaglio è facile
+        tripReset.setOnClickListener(v -> new AlertDialog.Builder(this)
+                .setMessage(R.string.trip_reset_confirm)
+                .setPositiveButton(R.string.reset, (d, w) -> {
+                    obd.resetTrip();
+                    showTrip(lastDrive, obd.tripSummary());
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show());
+        selectTripTab(Prefs.getTripTab(this));
+    }
+
+    private void selectTripTab(boolean trip) {
+        Prefs.setTripTab(this, trip);
+        tabDrive.setSelected(!trip);
+        tabTrip.setSelected(trip);
+        tripReset.setVisibility(trip ? View.VISIBLE : View.INVISIBLE);
+        showTrip(lastDrive, lastTrip);
+    }
+
+    private void showTrip(TripComputer.Summary drive, TripComputer.Summary trip) {
+        lastDrive = drive;
+        lastTrip = trip;
+        TripComputer.Summary s = tabTrip.isSelected() ? trip : drive;
+        if (s == null) {
+            return;
+        }
+        Double avg = s.averageL100();
+        cellAvg.setValue(avg != null ? oneDecimal(avg) : dash());
+        cellDistance.setValue(s.distanceKm < 100 ? oneDecimal(s.distanceKm) : String.valueOf(Math.round(s.distanceKm)));
+        long minutes = Math.round(s.seconds / 60.0);
+        if (minutes < 60) {
+            cellTime.setValue(String.valueOf(minutes));
+            cellTime.setUnit("min");
+        } else {
+            cellTime.setValue(String.format(IT, "%d:%02d", minutes / 60, minutes % 60));
+            cellTime.setUnit("h");
+        }
+        Double speed = s.averageSpeedKmh();
+        cellAvgSpeed.setValue(speed != null ? String.valueOf(Math.round(speed)) : dash());
+        cellFuelUsed.setValue(String.format(IT, "%.2f", s.fuelLiters));
+        // grafico: consumo dell'ultima mezz'ora, con la media della scheda scelta
+        chart.setData(lastHistory, avg);
+    }
+
+    // ================================================================ utilità
 
     private String dash() {
         return getString(R.string.no_value);
     }
 
     private static String oneDecimal(double v) {
-        return String.format(Locale.ITALY, "%.1f", v);
+        return String.format(IT, "%.1f", v);
     }
 
-    // ---------------------------------------------------------------- avvisi ed errori
-
-    private void setupWarnings() {
-        warnButton = findViewById(R.id.warn_button);
-        warnBadge = findViewById(R.id.warn_badge);
-        diagPanel = findViewById(R.id.diag_panel);
-        diagList = findViewById(R.id.diag_list);
-        diagEmptyTitle = findViewById(R.id.diag_empty_title);
-        diagEmptySub = findViewById(R.id.diag_empty_sub);
-        diagClear = findViewById(R.id.diag_clear);
-
-        warnButton.setOnClickListener(v -> setDiagOpen(!diagOpen));
-        findViewById(R.id.diag_close).setOnClickListener(v -> setDiagOpen(false));
-        diagClear.setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setTitle(R.string.diag_clear_title)
-                .setMessage(R.string.diag_clear_msg)
-                .setNegativeButton(R.string.diag_clear_cancel, null)
-                .setPositiveButton(R.string.diag_clear_confirm, (d, w) -> clearFaults())
-                .show());
-    }
-
-    private void clearFaults() {
-        boolean accepted = obd.requestClearFaults();
-        Toast.makeText(this, accepted ? R.string.diag_clear_sent : R.string.diag_clear_refused,
-                Toast.LENGTH_LONG).show();
-    }
-
-    private void setDiagOpen(boolean open) {
-        if (open == diagOpen) {
-            return;
-        }
-        diagOpen = open;
-        warnButton.setSelected(open);
-        float hidden = 340 * getResources().getDisplayMetrics().density;
-        if (open) {
-            diagPanel.setTranslationX(hidden);
-            diagPanel.setVisibility(View.VISIBLE);
-            diagPanel.animate().translationX(0).setDuration(220);
+    private void register(BroadcastReceiver receiver, IntentFilter filter) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED);
         } else {
-            diagPanel.animate().translationX(hidden).setDuration(200).withEndAction(() -> {
-                if (!diagOpen) {
-                    diagPanel.setVisibility(View.GONE);
-                }
-            });
+            registerReceiver(receiver, filter);
         }
-        refreshWarnings(); // il colore dell'icona cambia sul tasto selezionato
     }
 
-    /**
-     * Triangolo: giallo o rosso con il numero se ci sono errori, grigio altrimenti.
-     * Pannello: elenco degli errori, oppure il motivo per cui non ce n'è nessuno da mostrare.
-     */
-    private void refreshWarnings() {
-        List<String> faults = obdState == ObdManager.State.CONNECTED && dtcs != null
-                ? dtcs : Collections.<String>emptyList();
-        boolean critical = false;
-        for (String code : faults) {
-            critical |= Dtc.isCritical(code);
-        }
-        int tintColor = faults.isEmpty() ? R.color.muted : critical ? R.color.crit : R.color.warn;
-        // sul tasto selezionato (fondo ambra) l'icona è scura
-        warnButton.setImageTintList(ColorStateList.valueOf(getColor(diagOpen ? R.color.bg : tintColor)));
-        if (faults.isEmpty()) {
-            warnBadge.setVisibility(View.GONE);
-        } else {
-            warnBadge.setText(String.valueOf(faults.size()));
-            warnBadge.setBackgroundTintList(ColorStateList.valueOf(getColor(tintColor)));
-            warnBadge.setVisibility(View.VISIBLE);
-        }
-
-        diagList.removeAllViews();
-        if (faults.isEmpty()) {
-            if (obdState != ObdManager.State.CONNECTED) {
-                diagEmptyTitle.setText(R.string.diag_off);
-                diagEmptyTitle.setTextColor(getColor(R.color.muted));
-                diagEmptySub.setText(obdDetail != null ? obdDetail : "");
-            } else if (dtcs == null) {
-                diagEmptyTitle.setText(R.string.diag_reading);
-                diagEmptyTitle.setTextColor(getColor(R.color.muted));
-                diagEmptySub.setText("");
-            } else {
-                diagEmptyTitle.setText(R.string.diag_none);
-                diagEmptyTitle.setTextColor(getColor(R.color.ok));
-                diagEmptySub.setText(R.string.diag_none_sub);
-            }
-            diagList.addView(diagEmptyTitle);
-            diagList.addView(diagEmptySub);
-        } else {
-            for (String code : faults) {
-                diagList.addView(faultRow(code));
-            }
-        }
-        diagClear.setVisibility(faults.isEmpty() ? View.GONE : View.VISIBLE);
-    }
-
-    private View faultRow(String code) {
-        boolean critical = Dtc.isCritical(code);
-        int color = getColor(critical ? R.color.crit : R.color.warn);
-        float d = getResources().getDisplayMetrics().density;
-
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setBackgroundResource(R.drawable.bg_card);
-        int pad = Math.round(10 * d);
-        row.setPadding(pad, pad, pad, pad);
-        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        rowLp.bottomMargin = Math.round(8 * d);
-        row.setLayoutParams(rowLp);
-
-        ImageView icon = new ImageView(this);
-        icon.setImageResource(R.drawable.ic_warning);
-        icon.setImageTintList(ColorStateList.valueOf(color));
-        icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        int size = Math.round(32 * d);
-        row.addView(icon, new LinearLayout.LayoutParams(size, size));
-
-        LinearLayout texts = new LinearLayout(this);
-        texts.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams textsLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        textsLp.leftMargin = Math.round(10 * d);
-        row.addView(texts, textsLp);
-
-        TextView title = new TextView(this);
-        title.setText(Dtc.describe(code));
-        title.setTextColor(getColor(R.color.text));
-        title.setTextSize(17);
-        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
-        texts.addView(title);
-
-        TextView sub = new TextView(this);
-        sub.setText(code + " · " + getString(critical ? R.string.diag_critical : R.string.diag_warning));
-        sub.setTextColor(getColor(R.color.muted));
-        sub.setTextSize(13);
-        texts.addView(sub);
-        return row;
-    }
-
-    // ---------------------------------------------------------------- ciclo di vita
+    // ================================================================ ciclo di vita
 
     @Override
     protected void onResume() {
         super.onResume();
-        car.resume();
-        loadApps(); // la scelta delle app può essere cambiata nelle impostazioni
+        Immersive.apply(this);
+        activityResumed = true;
         obd.setVisible(true);
         updateVolume();
         updateDate();
-        IntentFilter time = new IntentFilter();
-        time.addAction(Intent.ACTION_TIME_TICK);
-        time.addAction(Intent.ACTION_TIME_CHANGED);
-        time.addAction(Intent.ACTION_TIMEZONE_CHANGED);
-        time.addAction(Intent.ACTION_DATE_CHANGED);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(timeReceiver, time, Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            registerReceiver(timeReceiver, time);
-        }
-        media.start(); // l'accesso alle notifiche può essere stato concesso nel frattempo
+        fillAppColumn(); // le app scelte possono essere cambiate nelle impostazioni
+        lastHistory = obd.consumptionHistory();
+        showTrip(obd.driveSummary(), obd.tripSummary());
         // se nelle impostazioni è stato scelto un altro adattatore, ricollegati
         String address = Prefs.getObdAddress(this);
-        if (pausedOnce && !java.util.Objects.equals(obdAddressAtPause, address)) {
+        boolean wasEnabled = obdEnabled;
+        applyAvailability();
+        if (pausedOnce && (!java.util.Objects.equals(obdAddressAtPause, address) || wasEnabled != obdEnabled)) {
             obd.restart();
         }
     }
@@ -590,10 +861,8 @@ public class LauncherActivity extends Activity
     @Override
     protected void onPause() {
         super.onPause();
-        car.pause();
+        activityResumed = false;
         obd.setVisible(false);
-        media.stop();
-        unregisterReceiver(timeReceiver);
         obdAddressAtPause = Prefs.getObdAddress(this);
         pausedOnce = true;
     }
@@ -601,17 +870,40 @@ public class LauncherActivity extends Activity
     @Override
     protected void onDestroy() {
         unregisterReceiver(packageReceiver);
+        unregisterReceiver(volumeReceiver);
+        unregisterReceiver(timeReceiver);
         appLoader.shutdown();
         obd.stop();
-        car.destroy();
+        nav.setListener(null);
+        nav.stop();
         super.onDestroy();
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        swipe.onTouchEvent(ev); // scorrimento tra le pagine con il dito, senza bloccare i tocchi normali
+        return super.dispatchTouchEvent(ev);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            Immersive.apply(this); // dopo dialoghi e tendine le barre vanno nascoste di nuovo
+        }
     }
 
     @Override
     public void onBackPressed() {
         // è la schermata Home: "indietro" non deve chiuderla
-        if (diagOpen) {
-            setDiagOpen(false);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        // autorizzazione appena concessa: si blocca subito, come voleva il tocco
+        if (requestCode == ScreenLock.REQUEST_ADMIN && ScreenLock.isAllowed(this)) {
+            ScreenLock.lockNow(this);
         }
     }
 
@@ -620,6 +912,10 @@ public class LauncherActivity extends Activity
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_BT) {
             obd.restart();
+            if (navEnabled) {
+                nav.stop();
+                nav.start();
+            }
         }
     }
 }

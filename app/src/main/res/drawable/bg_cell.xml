@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Casella di un dato dentro i riquadri della colonna destra -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#171B21" />
+    <corners android:radius="8dp" />
+</shape>

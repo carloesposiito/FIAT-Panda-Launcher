@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panda Launcher v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: schermo autoradio 1024x600 dp — colonna app 92 | centro (radio, auto 3D, marcia/velocità/giri) | colonna info 290 */
+  --bg:#0a0c0f;
+  --panel:#12151a;
+  --line:#22272f;
+  --line-strong:#3a414c;
+  --text:#e9ebee;
+  --muted:#8b929d;
+  --accent:#f2a33a;
+  --ok:#5fc38a;
+  --cold:#6aa8e8;
+  --crit:#e5534b;
+  --display:"Barlow Semi Condensed","Arial Narrow",sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:#050607;color:var(--text);font-family:var(--body);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+
+.page{min-height:100%;display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px 16px 28px}
+.caption{max-width:1024px;width:100%;color:var(--muted);font-size:14px;line-height:1.45;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.caption b{color:var(--text);font-weight:600}
+.stage{width:100%;max-width:1024px}
+.scaler{width:1024px;height:600px;transform-origin:top left}
+.bezel{border-radius:14px;padding:0;box-shadow:0 0 0 10px #15181d,0 0 0 11px #262a31,0 30px 60px rgba(0,0,0,.6)}
+
+/* ===== schermo ===== */
+.screen{width:1024px;height:600px;background:var(--bg);display:flex;overflow:hidden;border-radius:4px;position:relative}
+.vline{width:1px;background:var(--line);flex:none}
+
+/* colonna app */
+.apps{width:92px;flex:none;display:flex;flex-direction:column;padding:8px 8px 6px}
+.app-list{flex:1;display:flex;flex-direction:column}
+.cell{height:66px;flex:none;display:grid;place-items:center;border:0;background:transparent;border-radius:14px;padding:0}
+.cell:hover{background:rgba(255,255,255,.06)}
+.cell:active{background:rgba(255,255,255,.12)}
+.ico{width:48px;height:48px;border-radius:12px;display:grid;place-items:center}
+.ico svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hsep{height:1px;background:var(--line);margin:4px 10px}
+.cell .tool{width:26px;height:26px;stroke:var(--muted);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* centro */
+.center{flex:1;display:flex;flex-direction:column;min-width:0}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.radio{height:64px;margin:10px 12px 0;display:flex;align-items:center;padding:0 6px 0 12px;gap:4px}
+.radio-info{flex:1;display:flex;align-items:center;gap:12px;height:100%;min-width:0;border:0;background:transparent;text-align:left;padding:0;border-radius:8px}
+.radio-info:hover{background:rgba(255,255,255,.03)}
+.radio-info svg,.vol-ico{width:24px;height:24px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.vol-ico{width:20px;height:20px;stroke:var(--muted);margin-left:8px}
+.freq{font:700 22px/1 var(--display);font-variant-numeric:tabular-nums}
+.freq small{font:500 13px var(--body);color:var(--muted);margin-left:4px}
+.station{color:var(--muted);font-size:14px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vol{font:700 22px var(--display);min-width:40px;text-align:center;font-variant-numeric:tabular-nums}
+.round{width:44px;height:44px;border-radius:50%;background:rgba(18,21,26,.85);border:1px solid var(--line);display:grid;place-items:center;padding:0;flex:none}
+.round:hover{border-color:var(--line-strong)}
+.round svg{width:22px;height:22px;stroke:var(--muted);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.round.on{background:rgba(242,163,58,.15);border-color:rgba(242,163,58,.6)}
+.round.on svg{stroke:var(--accent)}
+
+.car{flex:1;position:relative;min-height:0}
+.car canvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
+.car canvas:active{cursor:grabbing}
+.car .round{position:absolute;top:10px;right:14px;width:48px;height:48px}
+.hint{position:absolute;left:16px;bottom:6px;font-size:12px;color:var(--line-strong)}
+
+.drive{height:96px;margin:0 12px 8px;display:flex;align-items:center}
+.drive > div{display:flex;align-items:center;justify-content:center}
+.dsep{width:1px;height:56px;background:var(--line);flex:none}
+.speed{flex:1;flex-direction:column}
+.gearrpm{flex:1.6;gap:0}
+.num{font:700 40px/1 var(--display);font-variant-numeric:tabular-nums;text-align:center}
+.stack{display:flex;flex-direction:column;align-items:center}
+.unit{color:var(--muted);font-size:13px}
+#gearNum{min-width:34px}
+
+/* colonna destra */
+.info{width:290px;flex:none;padding:6px 14px 12px;overflow:hidden;display:flex;flex-direction:column}
+.clock{font:700 56px/1.05 var(--display);font-variant-numeric:tabular-nums}
+.weekday{font-size:20px}
+.daterow{display:flex;align-items:center;gap:4px;margin-top:2px}
+.daterow .date{flex:1;color:var(--muted);font-size:15px}
+.daterow svg{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:1.8;stroke-linecap:round}
+.daterow b{font:700 20px var(--display)}
+.box{margin-top:12px;padding:8px 12px 6px;display:flex;flex-direction:column;min-height:0}
+.box + .box{margin-top:10px}
+.box.car{flex:1}
+.box.cons{flex:1.35}
+.box.car .row{flex:1}
+.chart{flex:1;min-height:44px;width:100%;margin-top:6px;display:block}
+.caption2{font-size:11px;color:var(--muted);margin-top:2px}
+.head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;min-height:22px}
+.label{font:700 12px var(--display);letter-spacing:.14em;color:var(--muted)}
+.chip{font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:rgba(139,146,157,.1);border:1px solid rgba(139,146,157,.33);color:var(--ok)}
+.row{display:flex;align-items:center;min-height:26px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--line-strong);margin-right:8px;flex:none}
+.row .k{flex:1;color:var(--muted);font-size:14px}
+.row .v{font:700 18px var(--display);font-variant-numeric:tabular-nums}
+.row .u{color:var(--muted);font-size:12px;min-width:34px;padding-left:4px}
+.tabs{display:flex;align-items:center;gap:2px}
+.tab{height:30px;padding:0 12px;border-radius:999px;border:0;background:transparent;color:var(--muted);font-size:13px}
+.tab[aria-selected="true"]{background:#262b33;color:var(--text)}
+.trash{width:36px;height:36px;border:0;background:transparent;border-radius:50%;display:grid;place-items:center;margin-left:auto}
+.trash:hover{background:rgba(255,255,255,.06)}
+.trash svg{width:22px;height:22px;stroke:var(--muted);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.trash[hidden]{display:grid;visibility:hidden}
+.instant{display:flex;align-items:baseline;margin-top:4px}
+.instant .k{flex:1;font-size:11px;letter-spacing:.1em;color:var(--muted)}
+.instant .v{font:700 26px var(--display);font-variant-numeric:tabular-nums}
+.instant .u{color:var(--muted);font-size:13px;min-width:34px;padding-left:4px}
+
+/* dialogo e schermo nero */
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,.55);display:none;place-items:center;z-index:5}
+.overlay.show{display:grid}
+.dialog{background:#1a1e24;border:1px solid var(--line-strong);border-radius:12px;padding:20px 22px 12px;width:360px}
+.dialog p{margin:0 0 6px;font-size:16px;line-height:1.4}
+.dialog input{width:100%;margin:10px 0 6px;background:transparent;border:0;border-bottom:2px solid var(--accent);color:var(--text);font:inherit;font-size:17px;padding:6px 2px;outline:none}
+.dialog .btns{display:flex;justify-content:flex-end;gap:6px;margin-top:10px}
+.dialog .btns button{background:transparent;border:0;color:var(--accent);font-weight:600;padding:8px 10px;border-radius:6px;text-transform:uppercase;font-size:14px;letter-spacing:.04em}
+.dialog .btns button:hover{background:rgba(242,163,58,.1)}
+.black{position:absolute;inset:0;background:#000;z-index:6;display:none;place-items:center;color:#222;font-size:14px;cursor:pointer}
+.black.show{display:grid}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="caption">
+    <span><b>Panda Launcher, nuova schermata</b> · anteprima a 1024×600 con dati OBD simulati</span>
+    <span>Trascina l'auto · tieni premuta la barra radio · prova volume, schede e cestino</span>
+  </div>
+  <div class="stage" id="stage">
+    <div class="scaler" id="scaler">
+    <div class="bezel">
+    <div class="screen" id="screen">
+
+      <!-- ===== sinistra: app ===== -->
+      <nav class="apps" aria-label="App">
+        <div class="app-list">
+          <button class="cell" title="Navigatore"><span class="ico" style="background:#2f7d5b"><svg viewBox="0 0 24 24"><path d="M12 2l7 19-7-4-7 4z"/></svg></span></button>
+          <button class="cell" title="Radio"><span class="ico" style="background:#b8742a"><svg viewBox="0 0 24 24"><path d="M3 9h18v11H3zM7 9l10-5M15 14.5a2 2 0 1 0 4 0a2 2 0 1 0-4 0M6 13h5M6 16.5h5"/></svg></span></button>
+          <button class="cell" title="Musica"><span class="ico" style="background:#7a4fb3"><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0a3 3 0 1 1 6 0zM20 16a3 3 0 1 1-6 0a3 3 0 1 1 6 0z"/></svg></span></button>
+          <button class="cell" title="Telefono"><span class="ico" style="background:#2b6cb0"><svg viewBox="0 0 24 24"><path d="M5 3h4l2 5-3 2a11 11 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2A18 18 0 0 1 3 5a2 2 0 0 1 2-2z"/></svg></span></button>
+          <button class="cell" title="Video"><span class="ico" style="background:#a83f3f"><svg viewBox="0 0 24 24"><path d="M3 6h13v12H3zM16 10l5-3v10l-5-3"/></svg></span></button>
+          <button class="cell" title="File"><span class="ico" style="background:#4a5260"><svg viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/></svg></span></button>
+        </div>
+        <div class="hsep"></div>
+        <button class="cell" id="btnOff" title="Spegni lo schermo"><svg class="tool" viewBox="0 0 24 24"><path d="M3 5h18v11H3zM9 20h6M12 16v4M14 8.2a3 3 0 1 0 1.8 4.6a2.4 2.4 0 0 1-1.8-4.6z"/></svg></button>
+        <button class="cell" title="Impostazioni launcher"><svg class="tool" viewBox="0 0 24 24"><path d="M12 9a3 3 0 1 1 0 6a3 3 0 1 1 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button>
+      </nav>
+
+      <div class="vline"></div>
+
+      <!-- ===== centro ===== -->
+      <main class="center">
+        <div class="tile radio">
+          <button class="radio-info" id="radioInfo" title="Tocca per aprire la radio, tieni premuto per dare un nome">
+            <svg viewBox="0 0 24 24"><path d="M3 9h18v11H3zM7 9l10-5M15 14.5a2 2 0 1 0 4 0a2 2 0 1 0-4 0M6 13h5M6 16.5h5"/></svg>
+            <span style="min-width:0">
+              <div class="freq">101,3<small>MHz</small></div>
+              <div class="station" id="station">Tieni premuto per dare un nome</div>
+            </span>
+          </button>
+          <svg class="vol-ico" viewBox="0 0 24 24"><path d="M4 9.5h3.5l4.5-4v13l-4.5-4H4zM15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>
+          <span class="vol" id="vol">14</span>
+          <button class="round" id="volDown" aria-label="Abbassa il volume" style="margin-left:4px"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button>
+          <button class="round" id="volUp" aria-label="Alza il volume" style="margin-left:8px"><svg viewBox="0 0 24 24"><path d="M6 12h12M12 6v12"/></svg></button>
+        </div>
+
+        <div class="car">
+          <canvas id="car" aria-label="Panda 3D: trascina per ruotare"></canvas>
+          <button class="round on" id="rotate" aria-label="Rotazione automatica" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4.5h-4.5"/></svg></button>
+          <span class="hint">doppio tocco: vista 3/4</span>
+        </div>
+
+        <div class="drive">
+          <div class="speed"><span class="num" id="speed">52</span><span class="unit">km/h</span></div>
+          <div class="dsep"></div>
+          <div class="gearrpm">
+            <div class="stack"><span class="num" id="gearNum">3</span><span class="unit">marcia</span></div>
+            <canvas id="shift" width="140" height="112" style="width:70px;height:56px;margin-left:10px;flex:none" aria-label="Schema del cambio"></canvas>
+            <canvas id="gauge" style="width:150px;height:92px;margin-left:20px;flex:none" aria-label="Contagiri"></canvas>
+          </div>
+        </div>
+      </main>
+
+      <div class="vline"></div>
+
+      <!-- ===== destra ===== -->
+      <aside class="info">
+        <div class="clock" id="clock">17:42</div>
+        <div class="weekday" id="weekday">Mercoledì</div>
+        <div class="daterow">
+          <span class="date" id="date">4 novembre</span>
+          <svg viewBox="0 0 24 24"><path d="M10 13.5v-8.5a2 2 0 1 1 4 0v8.5a4 4 0 1 1-4 0zM12 10v6"/></svg>
+          <b>12°</b><span class="unit">esterna</span>
+        </div>
+
+        <section class="tile box car">
+          <div class="head"><span class="label">AUTO</span><span class="chip">OBD</span></div>
+          <div class="row"><span class="dot" style="background:var(--ok)"></span><span class="k">Acqua</span><span class="v" id="coolant">88</span><span class="u">°C</span></div>
+          <div class="row"><span class="dot"></span><span class="k">Olio</span><span class="v">—</span><span class="u">°C</span></div>
+          <div class="row"><span class="dot" style="background:var(--ok)"></span><span class="k">Batteria</span><span class="v" id="batt">14,1</span><span class="u">V</span></div>
+          <div class="row"><span class="dot" style="background:var(--accent)"></span><span class="k">Carburante</span><span class="v">22</span><span class="u">%</span></div>
+          <div class="row"><span class="dot"></span><span class="k">Aria aspirata</span><span class="v">24</span><span class="u">°C</span></div>
+          <div class="row"><span class="dot"></span><span class="k">Carico motore</span><span class="v" id="load">31</span><span class="u">%</span></div>
+        </section>
+
+        <section class="tile box cons">
+          <div class="head tabs" role="tablist">
+            <button class="tab" role="tab" id="tabDrive" aria-selected="true">Viaggio</button>
+            <button class="tab" role="tab" id="tabTrip" aria-selected="false">Trip</button>
+            <button class="trash" id="trash" hidden aria-label="Azzera il trip"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/></svg></button>
+          </div>
+          <div class="instant"><span class="k">ISTANTANEO</span><span class="v" id="inst">5,8</span><span class="u" id="instU">l/100</span></div>
+          <div class="row"><span class="k">Medio</span><span class="v" id="avg">6,4</span><span class="u">l/100</span></div>
+          <div class="row"><span class="k">Distanza</span><span class="v" id="dist">12,7</span><span class="u">km</span></div>
+          <div class="row"><span class="k">Tempo</span><span class="v" id="time">24</span><span class="u" id="timeU">min</span></div>
+          <div class="row"><span class="k">Vel. media</span><span class="v" id="vavg">38</span><span class="u">km/h</span></div>
+          <div class="row"><span class="k">Benzina</span><span class="v" id="fuel">0,81</span><span class="u">l</span></div>
+          <canvas class="chart" id="chart" aria-label="Consumo dell'ultima mezz'ora"></canvas>
+          <div class="caption2">Consumo l/100 km · ultima mezz'ora</div>
+        </section>
+      </aside>
+
+      <!-- dialoghi -->
+      <div class="overlay" id="dlgReset" role="dialog" aria-modal="true">
+        <div class="dialog">
+          <p>Azzerare distanza, consumi e tempi del trip?</p>
+          <div class="btns"><button data-close>Annulla</button><button id="doReset">Azzera</button></div>
+        </div>
+      </div>
+      <div class="overlay" id="dlgName" role="dialog" aria-modal="true">
+        <div class="dialog">
+          <p>Nome della stazione 101,3</p>
+          <input id="nameInput" placeholder="es. Radio Deejay" aria-label="Nome della stazione">
+          <div class="btns"><button id="doRemove">Rimuovi</button><button data-close>Annulla</button><button id="doSave">Salva</button></div>
+        </div>
+      </div>
+      <div class="black" id="black">Tocca per riaccendere</div>
+    </div>
+    </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const fmt1 = v => v.toFixed(1).replace('.', ',');
+
+  /* ---------- adattamento alla larghezza della finestra ---------- */
+  const stage = $('stage'), scaler = $('scaler');
+  function fit(){
+    const k = Math.min(1, stage.clientWidth / 1024);
+    scaler.style.transform = `scale(${k})`;
+    stage.style.height = (600 * k) + 'px';
+  }
+  addEventListener('resize', fit); fit();
+
+  /* ---------- ora e data ---------- */
+  function clock(){
+    const d = new Date();
+    $('clock').textContent = d.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+    const wd = d.toLocaleDateString('it-IT', {weekday:'long'});
+    $('weekday').textContent = wd.charAt(0).toUpperCase() + wd.slice(1);
+    $('date').textContent = d.toLocaleDateString('it-IT', {day:'numeric', month:'long'});
+  }
+  clock(); setInterval(clock, 10000);
+
+  /* ---------- volume ---------- */
+  let vol = 14;
+  $('volDown').onclick = () => { vol = Math.max(0, vol - 1); $('vol').textContent = vol; };
+  $('volUp').onclick = () => { vol = Math.min(30, vol + 1); $('vol').textContent = vol; };
+
+  /* ---------- dialoghi ---------- */
+  document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => b.closest('.overlay').classList.remove('show'));
+  let stationName = null;
+  let pressTimer = null, longPressed = false;
+  const ri = $('radioInfo');
+  ri.addEventListener('pointerdown', () => { longPressed = false; pressTimer = setTimeout(() => { longPressed = true; openName(); }, 550); });
+  ['pointerup','pointerleave','pointercancel'].forEach(e => ri.addEventListener(e, () => clearTimeout(pressTimer)));
+  ri.addEventListener('click', () => { if (!longPressed) flash(ri); });
+  ri.addEventListener('contextmenu', e => e.preventDefault());
+  function flash(el){ el.style.background = 'rgba(255,255,255,.08)'; setTimeout(() => el.style.background = '', 180); }
+  function openName(){ $('nameInput').value = stationName || ''; $('dlgName').classList.add('show'); setTimeout(() => $('nameInput').focus(), 30); }
+  function setName(n){ stationName = n && n.trim() ? n.trim() : null; $('station').textContent = stationName || 'Tieni premuto per dare un nome'; $('station').style.color = stationName ? 'var(--text)' : ''; $('dlgName').classList.remove('show'); }
+  $('doSave').onclick = () => setName($('nameInput').value);
+  $('doRemove').onclick = () => setName(null);
+  $('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') setName($('nameInput').value); });
+
+  $('btnOff').onclick = () => $('black').classList.add('show');
+  $('black').onclick = () => $('black').classList.remove('show');
+
+  /* ---------- schede consumi ---------- */
+  const drive = {fuel:0.81, dist:12.7, sec:1440, moving:1200};
+  const trip  = {fuel:21.4, dist:318.6, sec:5*3600+12*60, moving:4.6*3600};
+  let showTrip = false;
+  function selectTab(t){
+    showTrip = t;
+    $('tabDrive').setAttribute('aria-selected', !t);
+    $('tabTrip').setAttribute('aria-selected', t);
+    $('trash').hidden = !t;
+    renderTrip();
+  }
+  $('tabDrive').onclick = () => selectTab(false);
+  $('tabTrip').onclick = () => selectTab(true);
+  $('trash').onclick = () => $('dlgReset').classList.add('show');
+  $('doReset').onclick = () => { Object.assign(trip, {fuel:0, dist:0, sec:0, moving:0}); $('dlgReset').classList.remove('show'); renderTrip(); };
+  function renderTrip(){
+    const s = showTrip ? trip : drive;
+    $('avg').textContent = s.dist >= 0.5 ? fmt1(s.fuel / s.dist * 100) : '—';
+    $('dist').textContent = s.dist < 100 ? fmt1(s.dist) : Math.round(s.dist);
+    const m = Math.round(s.sec / 60);
+    if (m < 60){ $('time').textContent = m; $('timeU').textContent = 'min'; }
+    else { $('time').textContent = Math.floor(m/60) + ':' + String(m%60).padStart(2,'0'); $('timeU').textContent = 'h'; }
+    $('vavg').textContent = s.moving >= 10 && s.dist > 0 ? Math.round(s.dist / (s.moving/3600)) : '—';
+    $('fuel').textContent = s.fuel.toFixed(2).replace('.', ',');
+    drawChart(s.dist >= 0.5 ? s.fuel / s.dist * 100 : null);
+  }
+
+  /* ---------- schema del cambio 1-3-5 / 2-4-R ---------- */
+  const sh = $('shift'), sc = sh.getContext('2d');
+  const C = {line:'#3a414c', acc:'#f2a33a', muted:'#8b929d', bg:'#0a0c0f'};
+  function drawShift(gear){
+    const W = 140, H = 112, r = 17, L = r + 2, R = W - r - 2, T = r + 2, B = H - r - 2, M = (T + B)/2;
+    const xs = [L, (L+R)/2, R], labels = ['1','3','5','2','4','R'], gears = [1,3,5,2,4,-2];
+    sc.clearRect(0,0,W,H); sc.lineCap = 'round'; sc.lineWidth = 4;
+    const seg = (x1,y1,x2,y2,on) => { sc.strokeStyle = on ? C.acc : C.line; sc.beginPath(); sc.moveTo(x1,y1); sc.lineTo(x2,y2); sc.stroke(); };
+    seg(xs[0], M, xs[2], M, gear === 0);
+    for (let c = 0; c < 3; c++){ seg(xs[c], T, xs[c], M, gears[c] === gear); seg(xs[c], M, xs[c], B, gears[c+3] === gear); }
+    sc.font = '700 20px "Barlow Semi Condensed", sans-serif'; sc.textAlign = 'center'; sc.textBaseline = 'middle';
+    for (let i = 0; i < 6; i++){
+      const x = xs[i%3], y = i < 3 ? T : B, on = gears[i] === gear;
+      sc.beginPath(); sc.arc(x, y, r, 0, Math.PI*2);
+      if (on){ sc.fillStyle = C.acc; sc.fill(); } else { sc.fillStyle = C.bg; sc.fill(); sc.lineWidth = 3; sc.strokeStyle = C.line; sc.stroke(); }
+      sc.fillStyle = on ? C.bg : C.muted; sc.fillText(labels[i], x, y + 1);
+      sc.lineWidth = 4;
+    }
+  }
+
+  /* ---------- simulazione di guida ---------- */
+  const KMH_PER_1000 = [7.2, 13.0, 19.4, 26.3, 32.6];
+  let t = 0, last = performance.now();
+  function simulate(now){
+    const dt = Math.min(0.2, (now - last) / 1000); last = now; t += dt;
+    // ciclo urbano/extraurbano di 60 s
+    const p = (t % 60) / 60;
+    let speed = p < 0.1 ? 0 : 55 + 35 * Math.sin((p - 0.1) * Math.PI * 2 * 0.9) * (p < 0.85 ? 1 : 0.3);
+    if (p > 0.9) speed = Math.max(0, speed * (1 - (p - 0.9) * 10));
+    speed = Math.max(0, speed);
+    let gear = speed < 3 ? 0 : speed < 18 ? 1 : speed < 32 ? 2 : speed < 50 ? 3 : speed < 72 ? 4 : 5;
+    const rpm = gear === 0 ? 820 + Math.sin(t*3)*15 : speed / KMH_PER_1000[gear-1] * 1000;
+    const lph = gear === 0 ? 0.75 : 0.6 + rpm / 1000 * 0.55 * (0.7 + 0.3 * Math.sin(t));
+    $('speed').textContent = Math.round(speed);
+    $('gearNum').textContent = gear === 0 ? 'N' : gear;
+    drawShift(gear);
+    rpmTarget = rpm;
+    if (speed >= 5){ $('inst').textContent = fmt1(Math.min(99.9, lph / speed * 100)); $('instU').textContent = 'l/100'; }
+    else { $('inst').textContent = fmt1(lph); $('instU').textContent = 'l/h'; }
+    $('load').textContent = Math.round(18 + rpm / 120);
+    // il tempo simulato scorre 10x per vedere muoversi i contatori
+    const k = dt * 10;
+    for (const s of [drive, trip]){ s.sec += k; s.fuel += lph * k / 3600; s.dist += speed * k / 3600; if (speed >= 3) s.moving += k; }
+    // storico per il grafico: un punto ogni 10 s simulati
+    bucket.sec += k; bucket.fuel += lph * k / 3600; bucket.km += speed * k / 3600;
+    if (bucket.sec >= 10){ history.push(bucket.km >= 0.02 ? Math.min(30, bucket.fuel / bucket.km * 100) : null); if (history.length > 180) history.shift(); bucket = {sec:0, fuel:0, km:0}; }
+    drawGauge();
+  }
+
+  /* ---------- contagiri a semicerchio ---------- */
+  let rpmTarget = 2680, rpmShown = 0;
+  const gc = $('gauge'), gx = gc.getContext('2d');
+  function drawGauge(){
+    const dpr = Math.min(2, devicePixelRatio || 1), W = 150, H = 92;
+    if (gc.width !== W*dpr){ gc.width = W*dpr; gc.height = H*dpr; }
+    gx.setTransform(dpr,0,0,dpr,0,0); gx.clearRect(0,0,W,H);
+    const stroke = 9, unitSpace = 17, R = Math.min(W/2 - stroke/2 - 1, H - unitSpace - stroke/2 - 1), cx = W/2, cy = stroke/2 + R + 1;
+    const arc = (a0, a1, col) => { gx.beginPath(); gx.arc(cx, cy, R, Math.PI + a0*Math.PI, Math.PI + a1*Math.PI); gx.strokeStyle = col; gx.lineWidth = stroke; gx.stroke(); };
+    arc(0, 1, '#1d2128'); arc(6/7, 1, 'rgba(229,83,75,.35)');
+    gx.strokeStyle = '#3a414c'; gx.lineWidth = 1.5;
+    const inner = R - stroke/2 - 2;
+    for (let k = 0; k <= 7; k++){ const a = Math.PI + Math.PI*k/7, len = k % 2 ? 3.5 : 6; gx.beginPath(); gx.moveTo(cx + Math.cos(a)*inner, cy + Math.sin(a)*inner); gx.lineTo(cx + Math.cos(a)*(inner-len), cy + Math.sin(a)*(inner-len)); gx.stroke(); }
+    rpmShown += (rpmTarget - rpmShown) * 0.25;
+    if (rpmShown > 1) arc(0, Math.min(1, rpmShown/7000), rpmShown >= 6000 ? '#e5534b' : '#f2a33a');
+    gx.fillStyle = '#e9ebee'; gx.textAlign = 'center'; gx.font = '700 40px "Barlow Semi Condensed", sans-serif';
+    gx.fillText((Math.round(rpmTarget/10)*10).toLocaleString('it-IT'), cx, cy);
+    gx.fillStyle = '#8b929d'; gx.font = '13px Barlow, sans-serif'; gx.fillText('rpm', cx, cy + unitSpace - 2);
+  }
+
+  /* ---------- grafico consumi ---------- */
+  let bucket = {sec:0, fuel:0, km:0};
+  const history = [];
+  for (let i = 0; i < 140; i++){ const v = i > 40 && i < 46 ? null : 5.2 + 1.6*Math.sin(i/9) + (Math.sin(i*1.7) * 0.9) + (i % 37 < 3 ? 4 : 0); history.push(v === null ? null : Math.max(2.5, v)); }
+  const ch = $('chart'), chx = ch.getContext('2d');
+  function drawChart(avg){
+    const dpr = Math.min(2, devicePixelRatio || 1), W = ch.clientWidth, H = ch.clientHeight;
+    if (!W || !H) return;
+    if (ch.width !== Math.round(W*dpr) || ch.height !== Math.round(H*dpr)){ ch.width = Math.round(W*dpr); ch.height = Math.round(H*dpr); }
+    chx.setTransform(dpr,0,0,dpr,0,0); chx.clearRect(0,0,W,H);
+    const top = 4, bottom = H - 2;
+    let max = 10; for (const p of history) if (p !== null) max = Math.max(max, p); if (avg) max = Math.max(max, avg);
+    max = Math.ceil(max/5)*5;
+    const y = v => bottom - v/max*(bottom-top);
+    chx.font = '10px Barlow, sans-serif'; chx.textAlign = 'left';
+    for (let v = 5; v < max; v += 5){ chx.fillStyle = '#22272f'; chx.fillRect(0, Math.round(y(v)), W, 1); chx.fillStyle = '#3a414c'; chx.fillText(v, 0, y(v) - 2); }
+    chx.fillStyle = '#22272f'; chx.fillRect(0, bottom, W, 1);
+    const n = history.length, slots = Math.max(30, n), step = W/(slots-1), x0 = W - (n-1)*step;
+    const grad = chx.createLinearGradient(0, top, 0, bottom); grad.addColorStop(0, 'rgba(242,163,58,.35)'); grad.addColorStop(1, 'rgba(242,163,58,0)');
+    let seg = [], last = null;
+    const flush = () => { if (seg.length < 1) return;
+      chx.beginPath(); seg.forEach((p,i) => i ? chx.lineTo(p[0],p[1]) : chx.moveTo(p[0],p[1])); chx.lineTo(seg[seg.length-1][0], bottom); chx.lineTo(seg[0][0], bottom); chx.closePath(); chx.fillStyle = grad; chx.fill();
+      chx.beginPath(); seg.forEach((p,i) => i ? chx.lineTo(p[0],p[1]) : chx.moveTo(p[0],p[1])); chx.strokeStyle = '#f2a33a'; chx.lineWidth = 2; chx.lineJoin = 'round'; chx.stroke(); seg = []; };
+    history.forEach((p,i) => { if (p === null){ flush(); return; } const pt = [x0 + i*step, y(p)]; seg.push(pt); last = pt; });
+    flush();
+    if (last){ chx.beginPath(); chx.arc(last[0], last[1], 3.5, 0, Math.PI*2); chx.fillStyle = '#f2a33a'; chx.fill(); }
+    if (avg){ const ya = y(avg); chx.setLineDash([4,4]); chx.beginPath(); chx.moveTo(0, ya); chx.lineTo(W, ya); chx.strokeStyle = '#8b929d'; chx.lineWidth = 1.2; chx.stroke(); chx.setLineDash([]);
+      chx.fillStyle = '#8b929d'; chx.font = '11px Barlow, sans-serif'; chx.textAlign = 'right'; chx.fillText('media ' + avg.toFixed(1).replace('.', ','), W, ya - 3); }
+  }
+  setInterval(renderTrip, 1000);
+
+  /* ---------- Panda 3D semplificata (profilo estruso, pittore) ---------- */
+  const cv = $('car'), cx = cv.getContext('2d');
+  // profilo laterale della 169: x lungo l'auto (muso verso +x), y in alto; metri
+  const prof = [[1.80,0.30],[1.82,0.62],[1.30,0.86],[0.62,1.47],[-1.55,1.54],[-1.79,1.40],[-1.82,0.62],[-1.80,0.30]];
+  const halfW = p => p[1] > 1.0 ? 0.70 : 0.81;
+  const glass = [[0.50,1.42],[-1.45,1.48],[-1.62,0.98],[1.18,0.90]];
+  const wheels = [[1.17,0.30],[-1.15,0.30]];
+  let yaw = -0.6, pitch = 0.22, auto = true, lastTouch = -1e9, vel = 0;
+  function project(x,y,z,W,H){
+    const cy = Math.cos(yaw), sy = Math.sin(yaw);
+    let X = x*cy + z*sy, Z = -x*sy + z*cy, Y = y - 0.33;
+    const cp = Math.cos(pitch), sp = Math.sin(pitch);
+    const Y2 = Y*cp - Z*sp, Z2 = Y*sp + Z*cp;
+    const d = 9.2, f = H / (2*Math.tan(13*Math.PI/180)) ;
+    const zc = d - Z2;
+    return [W/2 + X*f/zc, H*0.5 - Y2*f/zc, zc];
+  }
+  function shade(n, base){
+    // n: normale nel mondo; luce dall'alto-sinistra-davanti
+    const cy = Math.cos(yaw), sy = Math.sin(yaw);
+    const nx = n[0]*cy + n[2]*sy, nz = -n[0]*sy + n[2]*cy, ny = n[1];
+    const l = [-0.45, 0.8, 0.4], ln = Math.hypot(...l);
+    let i = (nx*l[0] + ny*l[1] + nz*l[2]) / ln;
+    i = 0.28 + 0.72 * Math.max(0, i);
+    const spec = Math.pow(Math.max(0, ny*0.6 + nz*0.8), 12) * 0.5;
+    return `rgb(${Math.min(255, base[0]*i + 255*spec)|0},${Math.min(255, base[1]*i + 255*spec)|0},${Math.min(255, base[2]*i + 255*spec)|0})`;
+  }
+  function drawCar(){
+    const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+    const W = r.width, H = r.height;
+    if (cv.width !== Math.round(W*dpr)){ cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); }
+    cx.setTransform(dpr,0,0,dpr,0,0);
+    // fondo: alone radiale
+    const g = cx.createRadialGradient(W/2, H*0.6, 0, W/2, H*0.6, Math.max(W,H)*0.7);
+    g.addColorStop(0,'#1a1e25'); g.addColorStop(0.55,'#0f1216'); g.addColorStop(1,'#0a0c0f');
+    cx.fillStyle = g; cx.fillRect(0,0,W,H);
+    // pedana (raggio 1,3 x metà lunghezza)
+    const R = 1.3 * 1.8, ring = [], ring2 = [];
+    for (let a = 0; a <= 64; a++){ const th = a/64*Math.PI*2; ring.push(project(Math.cos(th)*R, 0, Math.sin(th)*R, W, H)); ring2.push(project(Math.cos(th)*R*0.96, 0, Math.sin(th)*R*0.96, W, H)); }
+    const poly = (pts, fill, stroke, lw) => { cx.beginPath(); pts.forEach((p,i) => i ? cx.lineTo(p[0],p[1]) : cx.moveTo(p[0],p[1])); cx.closePath(); if (fill){ cx.fillStyle = fill; cx.fill(); } if (stroke){ cx.strokeStyle = stroke; cx.lineWidth = lw || 1; cx.stroke(); } };
+    poly(ring, '#14171c', '#2a2f37', 2);
+    poly(ring2, null, 'rgba(242,163,58,.55)', 2.5);
+    // ombra
+    const c0 = project(0,0,0,W,H), ex = project(2.1,0,0,W,H), ez = project(0,0,1.25,W,H);
+    const rx = Math.hypot(ex[0]-c0[0], ex[1]-c0[1]), rz = Math.hypot(ez[0]-c0[0], ez[1]-c0[1]);
+    cx.save(); cx.translate(c0[0], c0[1]); cx.scale(Math.max(rx, rz), Math.max(8, Math.min(rx, rz) * 0.55) );
+    const sg = cx.createRadialGradient(0,0,0,0,0,1); sg.addColorStop(0,'rgba(0,0,0,.85)'); sg.addColorStop(0.6,'rgba(0,0,0,.5)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+    cx.fillStyle = sg; cx.beginPath(); cx.arc(0,0,1,0,Math.PI*2); cx.fill(); cx.restore();
+
+    // facce
+    const faces = [];
+    const body = [26,28,32], glassC = [40,52,66];
+    const n = prof.length;
+    for (let i = 0; i < n; i++){
+      const a = prof[i], b = prof[(i+1)%n];
+      const pts = [[a[0],a[1], halfW(a)],[b[0],b[1], halfW(b)],[b[0],b[1],-halfW(b)],[a[0],a[1],-halfW(a)]];
+      let nx = b[1]-a[1], ny = -(b[0]-a[0]); const nl = Math.hypot(nx,ny) || 1; nx/=nl; ny/=nl;
+      const isGlass = i === 2;
+      faces.push({pts, n:[nx,ny,0], col: isGlass ? glassC : (i === n-1 ? [14,14,16] : body)});
+    }
+    for (const s of [1,-1]){
+      faces.push({pts: prof.map(p => [p[0], p[1], s*halfW(p)]), n:[0,0,s], col: body});
+      faces.push({pts: glass.map(p => [p[0], p[1], s*(halfW(p)+0.005)]), n:[0,0,s], col: glassC, over:true});
+      // fascione nero sulle fiancate
+      faces.push({pts: [[1.7,0.52,s*0.815],[-1.7,0.52,s*0.815],[-1.7,0.40,s*0.815],[1.7,0.40,s*0.815]], n:[0,0,s], col:[12,12,14], over:true});
+      for (const w of wheels){
+        const ring = [], hub = [];
+        for (let a = 0; a < 20; a++){ const th = a/20*Math.PI*2; ring.push([w[0]+Math.cos(th)*0.30, w[1]+Math.sin(th)*0.30, s*0.83]); hub.push([w[0]+Math.cos(th)*0.17, w[1]+Math.sin(th)*0.17, s*0.835]); }
+        faces.push({pts: ring, n:[0,0,s], col:[10,10,11], over:true});
+        faces.push({pts: hub, n:[0,0,s], col:[120,124,130], over:true});
+      }
+    }
+    // fari e fanali
+    for (const s of [1,-1]){
+      faces.push({pts: [[1.825,0.72,s*0.72],[1.825,0.72,s*0.45],[1.81,0.6,s*0.45],[1.81,0.6,s*0.72]], n:[1,0,0], col:[230,230,220], over:true, flat:true});
+      faces.push({pts: [[-1.825,1.25,s*0.80],[-1.825,1.25,s*0.66],[-1.825,0.82,s*0.66],[-1.825,0.82,s*0.80]], n:[-1,0,0], col:[200,40,36], over:true, flat:true});
+    }
+    // visibilità: la faccia si vede se la sua normale guarda verso la camera
+    const rot = v => {
+      const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+      const X = v[0]*cy + v[2]*sy, Z = -v[0]*sy + v[2]*cy, Y = v[1];
+      return [X, Y*cp - Z*sp, Y*sp + Z*cp];
+    };
+    const drawn = [];
+    for (const f of faces){
+      const P = f.pts.map(p => project(p[0],p[1],p[2],W,H));
+      const c = f.pts.reduce((s,p) => [s[0]+p[0], s[1]+p[1]-0.33, s[2]+p[2]], [0,0,0]).map(v => v / f.pts.length);
+      const cc = rot(c), nn = rot(f.n);
+      if (nn[0]*(0 - cc[0]) + nn[1]*(0 - cc[1]) + nn[2]*(9.2 - cc[2]) <= 0) continue;
+      const depth = P.reduce((s,p) => s + p[2], 0) / P.length - (f.over ? 0.05 : 0);
+      drawn.push({P, depth, fill: f.flat ? `rgb(${f.col})` : shade(f.n, f.col)});
+    }
+    drawn.sort((a,b) => b.depth - a.depth);
+    for (const d of drawn) poly(d.P, d.fill, 'rgba(0,0,0,.25)', 0.6);
+  }
+
+  let dragging = false, lx = 0, ly = 0, lastTap = 0;
+  cv.addEventListener('pointerdown', e => { dragging = true; lx = e.clientX; ly = e.clientY; vel = 0; cv.setPointerCapture(e.pointerId); lastTouch = performance.now();
+    if (performance.now() - lastTap < 300){ target = -0.6; } lastTap = performance.now(); });
+  cv.addEventListener('pointermove', e => { if (!dragging) return; const dx = e.clientX - lx, dy = e.clientY - ly; lx = e.clientX; ly = e.clientY;
+    yaw += dx * 0.009; vel = dx * 0.009 * 60; pitch = Math.max(0.05, Math.min(0.6, pitch + dy * 0.004)); lastTouch = performance.now(); target = null; });
+  const end = () => { dragging = false; lastTouch = performance.now(); };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  let target = null, spin = 0;
+  $('rotate').onclick = () => { auto = !auto; $('rotate').classList.toggle('on', auto); $('rotate').setAttribute('aria-pressed', auto); spin = 0; };
+
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let prev = performance.now();
+  function frame(now){
+    const dt = Math.min(0.1, (now - prev) / 1000); prev = now;
+    if (!dragging){
+      if (target !== null){ let d = Math.atan2(Math.sin(target - yaw), Math.cos(target - yaw)); yaw += d * Math.min(1, dt*4); if (Math.abs(d) < 0.002){ yaw = target; target = null; } }
+      else if (Math.abs(vel) > 0.02){ yaw += vel * dt; vel *= Math.pow(0.05, dt); }
+      else if (auto && !reduce && now - lastTouch > 4000){ spin = Math.min(1, spin + dt*0.5); yaw += 0.25 * dt * spin; }
+    }
+    drawCar();
+    simulate(now);
+    requestAnimationFrame(frame);
+  }
+  drawShift(3); renderTrip();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

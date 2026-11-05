@@ -2,30 +2,133 @@
 <resources>
     <string name="app_name">Panda Launcher</string>
     <string name="settings_title">Impostazioni launcher</string>
-    <string name="model_missing">Modello 3D non trovato: copia panda.glb in app/src/main/assets/models</string>
 
+    <!-- colonna app -->
+    <string name="screen_off">Spegni lo schermo</string>
+    <string name="lock_admin_explanation">Serve solo per bloccare e spegnere lo schermo con il tasto in fondo alla colonna delle app.</string>
+    <string name="lock_unavailable">Questa autoradio non permette di bloccare lo schermo.</string>
+    <string name="pref_lock_on">Blocco schermo: autorizzato</string>
+    <string name="pref_lock_off">Blocco schermo: non ancora autorizzato (si chiede al primo uso del tasto)</string>
+    <string name="pref_lock_revoke">Togli l\'autorizzazione al blocco schermo</string>
+    <string name="pref_lock_revoke_hint">Va tolta prima di disinstallare il launcher: finché è attiva Android non lo lascia disinstallare.</string>
+    <string name="settings_button">Impostazioni launcher</string>
+    <string name="app_open_failed">Impossibile aprire l\'app</string>
+
+    <!-- volume -->
+    <string name="volume_down">Abbassa il volume</string>
+    <string name="volume_up">Alza il volume</string>
+    <string name="cancel">Annulla</string>
+    <string name="remove">Rimuovi</string>
+
+    <!-- auto -->
     <string name="unit_kmh">km/h</string>
+    <string name="unit_rpm">rpm</string>
+    <string name="neutral">N</string>
+    <string name="unit_gear">marcia</string>
+    <string name="chart_caption">Consumo l/100 km · ultima mezz\'ora</string>
+
+    <!-- pagine -->
+    <string name="page_car">Auto</string>
+    <string name="page_trip">Consumi</string>
+    <string name="page_nav">Navigazione</string>
+    <string name="page_alerts">Avvisi</string>
+
+    <!-- navigazione -->
+    <string name="nav_idle_title">Nessuna navigazione</string>
+    <string name="nav_idle_waiting">Avvia una navigazione con Google Maps sul telefono: le indicazioni arrivano qui tramite l\'app goESP.</string>
+    <string name="nav_idle_off">Il telefono non è collegato. Apri goESP sul telefono e premi Connetti.</string>
+    <string name="nav_unsupported">Questa autoradio non può farsi trovare via Bluetooth LE: la navigazione goESP non è disponibile.</string>
+    <string name="nav_bt_off">Bluetooth spento: accendilo per ricevere la navigazione.</string>
+    <string name="nav_no_permission">Manca il permesso Bluetooth: concedilo dalle impostazioni del launcher.</string>
+    <string name="nav_error">Errore Bluetooth: prova a spegnere e riaccendere la navigazione nelle impostazioni.</string>
+    <string name="nav_connected">Collegato a %1$s</string>
+    <string name="nav_arrival">Arrivo</string>
+    <string name="nav_remaining_distance">Mancano</string>
+    <string name="nav_remaining_time">Tempo</string>
+
+    <!-- avvisi -->
+    <string name="alerts_title">Avvisi e diagnosi</string>
+    <string name="alerts_none">Nessun avviso: spia motore spenta e nessun codice di errore.</string>
+    <string name="alerts_read">Leggi allarmi</string>
+    <string name="alerts_reading">Lettura…</string>
+    <string name="alerts_summary_unread">Allarmi non letti</string>
+    <string name="alerts_unread">Premi «Leggi allarmi» per leggere la spia motore e i codici di errore dalla centralina.</string>
+    <string name="alerts_summary_none">Tutto in ordine</string>
+    <string name="alerts_summary_count">%1$d avvisi</string>
+    <string name="alerts_summary_one">1 avviso</string>
+    <string name="alerts_summary_offline">OBD non collegato</string>
+    <string name="alerts_offline">OBD non collegato: spia motore e codici di errore non sono leggibili.</string>
+    <string name="alerts_note">Spia motore e codici di errore si leggono solo premendo «Leggi allarmi». I codici restano finché non vengono cancellati in officina.</string>
+    <string name="close">Chiudi</string>
+
+    <!-- colonna destra -->
+    <string name="outside">esterna</string>
+    <string name="section_car">AUTO</string>
+    <string name="section_trip">CONSUMI</string>
+    <string name="label_speed">Velocità</string>
+    <string name="label_rpm">Giri motore</string>
+    <string name="label_coolant">Acqua</string>
+    <string name="label_oil">Olio</string>
+    <string name="label_battery">Batteria</string>
+    <string name="label_fuel">Serbatoio</string>
+    <string name="label_intake">Aria aspirata</string>
+    <string name="label_load">Carico motore</string>
+    <string name="label_instant">Istantaneo</string>
+    <string name="label_average">Medio</string>
+    <string name="label_distance">Distanza</string>
+    <string name="label_time">Tempo</string>
+    <string name="label_avg_speed">Vel. media</string>
+    <string name="label_fuel_used">Benzina</string>
+    <string name="tab_drive">Viaggio</string>
+    <string name="tab_trip">Trip</string>
+    <string name="trip_reset">Azzera il trip</string>
+    <string name="trip_reset_confirm">Azzerare distanza, consumi e tempi del trip?</string>
+    <string name="reset">Azzera</string>
     <string name="unit_celsius">°C</string>
     <string name="unit_volt">V</string>
+    <string name="unit_percent">%</string>
     <string name="unit_l100">l/100</string>
+    <string name="unit_lh">l/h</string>
+    <string name="unit_km">km</string>
+    <string name="unit_l">l</string>
     <string name="no_value">—</string>
 
     <string name="obd_not_configured">OBD da configurare</string>
-    <string name="obd_connecting">OBD: collegamento…</string>
-    <string name="obd_connected">OBD collegato</string>
-    <string name="obd_error">OBD non collegato</string>
+    <string name="obd_connecting">Collegamento…</string>
+    <string name="obd_connected">OBD</string>
+    <string name="obd_connected_long">collegato</string>
+    <string name="obd_error">OBD scollegato</string>
     <string name="obd_err_permission">Manca il permesso Bluetooth</string>
     <string name="obd_err_bt_off">Bluetooth spento</string>
     <string name="obd_err_ecu">La centralina non risponde (quadro acceso?)</string>
 
-    <string name="app_open_failed">Impossibile aprire l\'app</string>
-
-    <string name="pref_apps_title">App nella schermata Home</string>
-    <string name="pref_apps_hint">Spunta le app da mostrare nella colonna a sinistra. Compaiono nell\'ordine in cui le spunti.</string>
-    <string name="pref_obd_title">Adattatore OBD</string>
+    <!-- impostazioni -->
+    <string name="pref_apps_title">Colonna app</string>
+    <string name="pref_apps_hint">Scegli quali app mostrare a sinistra e in che ordine.</string>
+    <string name="pref_apps_slots">Nella colonna entrano %1$d icone.</string>
+    <string name="pref_apps_edit">Scegli e ordina le app</string>
+    <string name="pref_obd_title">OBD</string>
+    <string name="pref_obd_enable">Usa l\'OBD (dati auto, consumi e avvisi)</string>
+    <string name="pref_obd_disabled_hint">Con l\'OBD spento la Home mostra solo l\'auto 3D: pagine dei dati, consumi e avvisi sono nascoste.</string>
+    <string name="pref_obd_status">Stato: %1$s</string>
+    <string name="pref_obd_adapter">Adattatore</string>
     <string name="pref_obd_hint">Scegli l\'ELM327 tra i dispositivi Bluetooth già associati. Se non c\'è, associalo prima dalle impostazioni Bluetooth di Android (PIN di solito 1234 o 0000).</string>
     <string name="pref_obd_none">Nessun adattatore</string>
     <string name="pref_obd_no_devices">Nessun dispositivo Bluetooth associato.</string>
+    <string name="pref_nav_title">Navigazione (goESP)</string>
+    <string name="pref_nav_enable">Ricevi la navigazione di Google Maps dal telefono</string>
+    <string name="pref_nav_hint">Sul telefono serve l\'app goESP (versione aggiornata, che trova l\'autoradio anche senza "goESP" nel nome). Apri goESP, concedi i permessi e premi Connetti: le indicazioni compaiono nella pagina Navigazione. La mappa non viene mostrata.</string>
+    <string name="pref_nav_phone_settings">Le impostazioni del riconoscimento (motore di parsing Google Maps: Auto, V1, V2) restano nell\'app goESP sul telefono. Mappa, zoom, stile e luminosità riguardano il display ESP32 e qui non servono.</string>
+    <string name="pref_nav_status">Stato: %1$s</string>
+    <string name="pref_nav_state_off">spenta</string>
+    <string name="pref_nav_state_waiting">in attesa del telefono</string>
+    <string name="pref_nav_state_starting">avvio…</string>
+    <string name="pref_nav_state_connected">collegato a %1$s</string>
+    <string name="pref_nav_state_unsupported">l\'autoradio non supporta il Bluetooth LE periferico</string>
+    <string name="pref_nav_state_bt_off">Bluetooth spento</string>
+    <string name="pref_nav_state_no_bt">Bluetooth assente</string>
+    <string name="pref_nav_state_permission">manca il permesso Bluetooth</string>
+    <string name="pref_nav_state_error">errore Bluetooth</string>
     <string name="pref_engine_title">Motore</string>
     <string name="pref_engine_hint">Serve per stimare il consumo. La cilindrata è sul libretto, alla voce P.1.</string>
     <string name="pref_engine_11">1.1 Fire (1108 cm³)</string>
@@ -38,52 +141,12 @@
     <string name="pref_grant_permission">Concedi il permesso Bluetooth</string>
     <string name="pref_need_permission">Per vedere i dispositivi serve il permesso Bluetooth.</string>
 
-    <!-- Home -->
-    <string name="lbl_speed">Velocità</string>
-    <string name="lbl_gear">Marcia</string>
-    <string name="lbl_rpm">Giri motore</string>
-    <string name="lbl_data">Dati auto</string>
-    <string name="lbl_battery">Batteria</string>
-    <string name="lbl_coolant">Liquido motore</string>
-    <string name="lbl_load">Carico motore</string>
-    <string name="lbl_intake">Aria aspirata</string>
-    <string name="lbl_ambient">Temperatura esterna</string>
-    <string name="lbl_fuel">Consumo</string>
-    <string name="lbl_fuel_now">Istantaneo</string>
-    <string name="lbl_fuel_avg">Medio</string>
-    <string name="lbl_minutes_ago">10 min fa</string>
-    <string name="lbl_now">ora</string>
-    <string name="unit_percent">%</string>
-    <string name="unit_l100_km">l/100 km</string>
-    <string name="gear_neutral">Folle</string>
-    <string name="gear_format">%1$dª inserita</string>
-
-    <string name="cd_settings">Impostazioni del launcher</string>
-    <string name="cd_screen_off">Spegni schermo</string>
-    <string name="cd_rotate">Rotazione automatica</string>
-    <string name="cd_warnings">Avvisi e errori</string>
-    <string name="cd_volume_up">Volume più</string>
-    <string name="cd_volume_down">Volume meno</string>
-    <string name="cd_close">Chiudi</string>
-
-    <string name="media_kind">AUDIO</string>
-    <string name="media_idle">Nessun brano in riproduzione</string>
-    <string name="media_need_access">Tocca per consentire la lettura dei brani</string>
-
-    <string name="warn_title">AVVISI E ERRORI</string>
-    <string name="diag_none">Nessun errore</string>
-    <string name="diag_none_sub">Il motore non segnala anomalie.</string>
-    <string name="diag_reading">Lettura in corso…</string>
-    <string name="diag_off">OBD non collegato</string>
-    <string name="diag_clear">Cancella errori</string>
-    <string name="diag_clear_title">Cancellare gli errori?</string>
-    <string name="diag_clear_msg">Cancello tutti i codici dalla centralina. Se il guasto resta, gli errori tornano. Alcuni controlli della centralina si azzerano e possono servire giorni di guida prima della revisione.</string>
-    <string name="diag_clear_confirm">Cancella</string>
-    <string name="diag_clear_cancel">Annulla</string>
-    <string name="diag_clear_refused">Per cancellare gli errori l\'auto deve essere ferma.</string>
-    <string name="diag_clear_sent">Richiesta inviata alla centralina</string>
-    <string name="diag_critical">spia rossa</string>
-    <string name="diag_warning">avviso</string>
-
-    <string name="blank_hint">Tocca lo schermo per riaccenderlo</string>
+    <!-- scelta app -->
+    <string name="picker_title">App nella colonna</string>
+    <string name="picker_selected">NELLA COLONNA</string>
+    <string name="picker_selected_hint">Si vedono le prime %1$d: le altre compaiono solo se c\'è spazio.</string>
+    <string name="picker_none">Nessuna app scelta: tocca un\'app qui sotto per aggiungerla.</string>
+    <string name="picker_all">TUTTE LE APP</string>
+    <string name="move_up">Sposta su</string>
+    <string name="move_down">Sposta giù</string>
 </resources>

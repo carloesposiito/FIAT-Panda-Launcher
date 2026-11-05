@@ -1,11 +1,11 @@
 package it.panda.launcher;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import it.panda.launcher.apps.FavoriteSelection;
 
 /** Impostazioni salvate del launcher. */
 public final class Prefs {
@@ -14,8 +14,13 @@ public final class Prefs {
     private static final String KEY_OBD_ADDRESS = "obd_address";
     private static final String KEY_OBD_NAME = "obd_name";
     private static final String KEY_DISPLACEMENT_CC = "displacement_cc";
-    private static final String KEY_AUTO_ROTATE = "auto_rotate";
-    private static final String KEY_FAVORITE_APPS = "favorite_apps";
+    private static final String KEY_FAVORITES = "favorite_apps";
+    private static final String KEY_APP_SLOTS = "app_slots";
+    private static final String KEY_TRIP = "trip_state";
+    private static final String KEY_TRIP_TAB = "trip_tab";
+    private static final String KEY_PAGE = "home_page";
+    private static final String KEY_OBD_ENABLED = "obd_enabled";
+    private static final String KEY_NAV_ENABLED = "nav_enabled";
 
     /** Cilindrate dei motori benzina della Panda 169. */
     public static final int CC_11 = 1108;
@@ -27,6 +32,25 @@ public final class Prefs {
 
     private static SharedPreferences sp(Context c) {
         return c.getApplicationContext().getSharedPreferences(FILE, Context.MODE_PRIVATE);
+    }
+
+    /** Ricezione della navigazione dall'app goESP sul telefono. */
+    public static boolean getNavEnabled(Context c) {
+        return sp(c).getBoolean(KEY_NAV_ENABLED, false);
+    }
+
+    public static void setNavEnabled(Context c, boolean enabled) {
+        sp(c).edit().putBoolean(KEY_NAV_ENABLED, enabled).apply();
+    }
+
+    /** OBD attivo; se mai impostato, attivo solo se era già stato scelto un adattatore. */
+    public static boolean getObdEnabled(Context c) {
+        SharedPreferences p = sp(c);
+        return p.getBoolean(KEY_OBD_ENABLED, p.getString(KEY_OBD_ADDRESS, null) != null);
+    }
+
+    public static void setObdEnabled(Context c, boolean enabled) {
+        sp(c).edit().putBoolean(KEY_OBD_ENABLED, enabled).apply();
     }
 
     /** Indirizzo Bluetooth dell'ELM327, oppure null se non scelto. */
@@ -50,20 +74,69 @@ public final class Prefs {
         sp(c).edit().putInt(KEY_DISPLACEMENT_CC, cc).apply();
     }
 
-    /** App mostrate a sinistra (ordinate), oppure null se l'utente non ha ancora scelto. */
-    public static List<String> getFavoriteApps(Context c) {
-        return FavoriteSelection.decode(sp(c).getString(KEY_FAVORITE_APPS, null));
+    // ---------------------------------------------------------------- app nella colonna
+
+    /** App scelte per la colonna, in ordine; null se l'utente non le ha mai scelte. */
+    public static List<ComponentName> getFavorites(Context c) {
+        String raw = sp(c).getString(KEY_FAVORITES, null);
+        if (raw == null) {
+            return null;
+        }
+        List<ComponentName> out = new ArrayList<>();
+        for (String line : raw.split("\n")) {
+            ComponentName cn = ComponentName.unflattenFromString(line.trim());
+            if (cn != null) {
+                out.add(cn);
+            }
+        }
+        return out;
     }
 
-    public static void setFavoriteApps(Context c, List<String> keys) {
-        sp(c).edit().putString(KEY_FAVORITE_APPS, FavoriteSelection.encode(keys)).apply();
+    public static void setFavorites(Context c, List<ComponentName> apps) {
+        StringBuilder b = new StringBuilder();
+        for (ComponentName cn : apps) {
+            if (b.length() > 0) {
+                b.append('\n');
+            }
+            b.append(cn.flattenToString());
+        }
+        sp(c).edit().putString(KEY_FAVORITES, b.toString()).apply();
     }
 
-    public static boolean getAutoRotate(Context c) {
-        return sp(c).getBoolean(KEY_AUTO_ROTATE, true);
+    /** Quante icone entrano nella colonna (lo calcola la Home, lo mostra l'editor). 0 = non ancora noto. */
+    public static int getAppSlots(Context c) {
+        return sp(c).getInt(KEY_APP_SLOTS, 0);
     }
 
-    public static void setAutoRotate(Context c, boolean value) {
-        sp(c).edit().putBoolean(KEY_AUTO_ROTATE, value).apply();
+    public static void setAppSlots(Context c, int slots) {
+        sp(c).edit().putInt(KEY_APP_SLOTS, slots).apply();
+    }
+
+    // ---------------------------------------------------------------- trip
+
+    public static String getTripState(Context c) {
+        return sp(c).getString(KEY_TRIP, null);
+    }
+
+    public static void setTripState(Context c, String state) {
+        sp(c).edit().putString(KEY_TRIP, state).apply();
+    }
+
+    /** true se nel riquadro consumi è selezionata la scheda "Trip" invece di "Viaggio". */
+    public static boolean getTripTab(Context c) {
+        return sp(c).getBoolean(KEY_TRIP_TAB, false);
+    }
+
+    public static void setTripTab(Context c, boolean trip) {
+        sp(c).edit().putBoolean(KEY_TRIP_TAB, trip).apply();
+    }
+
+    /** Pagina della Home mostrata per ultima (0 = auto 3D, 1 = dati auto, 2 = consumi). */
+    public static int getPage(Context c) {
+        return sp(c).getInt(KEY_PAGE, 0);
+    }
+
+    public static void setPage(Context c, int page) {
+        sp(c).edit().putInt(KEY_PAGE, page).apply();
     }
 }

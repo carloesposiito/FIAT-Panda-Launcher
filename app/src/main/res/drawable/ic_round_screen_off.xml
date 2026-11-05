@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tasto della colonna app con lo stesso aspetto delle icone delle app: cerchio chiaro, simbolo scuro -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="@dimen/app_icon" android:height="@dimen/app_icon"
+    android:viewportWidth="48" android:viewportHeight="48">
+    <path
+        android:fillColor="#E9EBEE"
+        android:pathData="M24,0a24,24 0,1 1,0 48a24,24 0,1 1,0 -48z" />
+    <group android:translateX="12" android:translateY="12">
+        <path
+            android:strokeColor="#1D2128"
+            android:strokeWidth="1.9"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M3,5h18v11h-18zM9,20h6M12,16v4M14,8.2a3,3 0,1 0,1.8 4.6a2.4,2.4 0,0 1,-1.8 -4.6z" />
+    </group>
+</vector>

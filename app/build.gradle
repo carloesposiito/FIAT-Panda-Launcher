@@ -25,17 +25,8 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-
-    androidResources {
-        // Il modello 3D si legge più in fretta se non è compresso dentro l'APK.
-        noCompress 'glb'
-    }
 }
 
 dependencies {
-    def filamentVersion = '1.56.0'
-    implementation "com.google.android.filament:filament-android:$filamentVersion"
-    implementation "com.google.android.filament:gltfio-android:$filamentVersion"
-
     testImplementation 'junit:junit:4.13.2'
 }

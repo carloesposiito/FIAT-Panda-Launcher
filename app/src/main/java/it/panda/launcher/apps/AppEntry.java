@@ -14,9 +14,4 @@ public final class AppEntry {
         this.component = component;
         this.icon = icon;
     }
-
-    /** Chiave stabile salvata nelle preferenze. */
-    public String key() {
-        return component.flattenToShortString();
-    }
 }
