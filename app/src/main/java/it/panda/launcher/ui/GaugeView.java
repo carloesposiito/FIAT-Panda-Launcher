@@ -3,7 +3,10 @@ package it.panda.launcher.ui;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Matrix;
 import android.graphics.RectF;
+import android.graphics.Shader;
+import android.graphics.SweepGradient;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -25,7 +28,16 @@ public class GaugeView extends View {
     private final Paint tick = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint number = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint unit = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint knob = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint knobCore = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Matrix rotate = new Matrix();
     private final RectF oval = new RectF();
+    private final RectF innerOval = new RectF();
+    private Shader sweep;
+    private float sweepCx = -1, sweepCy = -1;
+    private final int hot;
     private final float density;
     private final int accent, crit;
 
@@ -40,6 +52,7 @@ public class GaugeView extends View {
         density = getResources().getDisplayMetrics().density;
         accent = context.getColor(R.color.accent);
         crit = context.getColor(R.color.crit);
+        hot = 0xFFFF8A3D; // arancio a metà scala: l'arco scalda con la velocità
 
         float stroke = 6 * density;
         track.setStyle(Paint.Style.STROKE);
@@ -53,6 +66,13 @@ public class GaugeView extends View {
         tick.setStrokeWidth(1.2f * density);
         tick.setStrokeCap(Paint.Cap.ROUND);
         tick.setColor(context.getColor(R.color.line_strong));
+        glow.setStyle(Paint.Style.STROKE);
+        glow.setStrokeCap(Paint.Cap.ROUND);
+        knob.setColor(0xFFFFFFFF);
+        knobCore.setColor(0xFF080A0D);
+        ring.setStyle(Paint.Style.STROKE);
+        ring.setStrokeWidth(1f * density);
+        ring.setColor(context.getColor(R.color.line));
 
         number.setTypeface(Fonts.bold(context));
         number.setTextAlign(Paint.Align.CENTER);
@@ -85,8 +105,13 @@ public class GaugeView extends View {
         postInvalidateOnAnimation();
     }
 
-    @Override
-    protected void onDraw(Canvas canvas) {
+    /** Larghezza dell'arco disegnato (px), così altri controlli si allineano al tachimetro. */
+    public float getArcWidth() {
+        return getWidth() > 0 ? 2 * measureArc() + track.getStrokeWidth() : 0f;
+    }
+
+    /** Imposta testi e spessori in base alla vista e restituisce il raggio dell'arco. */
+    private float measureArc() {
         // testo e spessore proporzionati allo strumento (stessa misura per tachimetro e contagiri)
         float base = Math.min(getWidth() / 2f, getHeight() / 1.75f);
         number.setTextSize(base * 0.72f);
@@ -97,27 +122,27 @@ public class GaugeView extends View {
         float stroke = track.getStrokeWidth();
         // l'arco aperto in basso è alto 1,5 raggi (sin 30° = 0,5); sotto resta lo spazio per l'unità
         float unitBelow = unit.descent() + 2 * density;
-        float radius = Math.min((getWidth() - stroke) / 2f - 1, (getHeight() - stroke - 2 - unitBelow) / 1.5f);
+        return Math.min((getWidth() - stroke) / 2f - 1, (getHeight() - stroke - 2 - unitBelow) / 1.5f);
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        float radius = measureArc();
+        float stroke = track.getStrokeWidth();
+        float base = Math.min(getWidth() / 2f, getHeight() / 1.75f);
         float cx = getWidth() / 2f;
         float cy = stroke / 2f + radius + 1;
         oval.set(cx - radius, cy - radius, cx + radius, cy + radius);
+
+        // anello interno sottile: dà profondità allo strumento
+        float ringR = radius - stroke * 1.9f;
+        innerOval.set(cx - ringR, cy - ringR, cx + ringR, cy + ringR);
+        canvas.drawArc(innerOval, START, SWEEP, false, ring);
 
         canvas.drawArc(oval, START, SWEEP, false, track);
         if (redFrom > 0 && redFrom < max) {
             float from = START + SWEEP * redFrom / max;
             canvas.drawArc(oval, from, START + SWEEP - from, false, red);
-        }
-
-        // tacche all'interno dell'arco; una ogni due più lunga
-        if (tickStep > 0) {
-            float inner = radius - stroke / 2f - 3 * density;
-            int count = Math.round(max / tickStep);
-            for (int k = 0; k <= count; k++) {
-                double ang = Math.toRadians(START + SWEEP * k / count);
-                float c = (float) Math.cos(ang), s = (float) Math.sin(ang);
-                float len = (k % 2 == 0 ? 6f : 3f) * density * Math.max(1f, base / (60 * density));
-                canvas.drawLine(cx + c * inner, cy + s * inner, cx + c * (inner - len), cy + s * (inner - len), tick);
-            }
         }
 
         // avvicinamento morbido al valore letto
@@ -128,9 +153,45 @@ public class GaugeView extends View {
         } else {
             shown = goal;
         }
+
+        // tacche all'interno dell'arco: quelle già "passate" si accendono; una ogni due più lunga
+        if (tickStep > 0) {
+            float inner = radius - stroke / 2f - 3 * density;
+            int count = Math.round(max / tickStep);
+            for (int k = 0; k <= count; k++) {
+                boolean major = k % 2 == 0;
+                boolean passed = target != null && max * k / count <= shown + max / 400f;
+                tick.setColor(passed ? 0xCCF4F6F8 : getContext().getColor(major ? R.color.muted : R.color.line_strong));
+                tick.setStrokeWidth((major ? 1.8f : 1.2f) * density);
+                double ang = Math.toRadians(START + SWEEP * k / count);
+                float c = (float) Math.cos(ang), s = (float) Math.sin(ang);
+                float len = (major ? 6f : 3.5f) * density * Math.max(1f, base / (60 * density));
+                canvas.drawLine(cx + c * inner, cy + s * inner, cx + c * (inner - len), cy + s * (inner - len), tick);
+            }
+        }
+
         if (shown > max / 500f) {
-            fill.setColor(redFrom > 0 && shown >= redFrom ? crit : accent);
-            canvas.drawArc(oval, START, SWEEP * shown / max, false, fill);
+            // colore che scalda lungo la scala: giallo, arancio, rosso
+            if (sweep == null || sweepCx != cx || sweepCy != cy) {
+                sweep = new SweepGradient(cx, cy, new int[]{accent, hot, crit}, new float[]{0f, 0.35f, SWEEP / 360f});
+                rotate.setRotate(START, cx, cy);
+                sweep.setLocalMatrix(rotate);
+                sweepCx = cx;
+                sweepCy = cy;
+            }
+            float sweepAngle = SWEEP * shown / max;
+            fill.setShader(sweep);
+            glow.setShader(sweep);
+            glow.setStrokeWidth(stroke * 2.4f);
+            glow.setAlpha(46);
+            canvas.drawArc(oval, START, sweepAngle, false, glow);
+            canvas.drawArc(oval, START, sweepAngle, false, fill);
+
+            // pallino all'estremità dell'arco
+            double end = Math.toRadians(START + sweepAngle);
+            float kx = cx + (float) Math.cos(end) * radius, ky = cy + (float) Math.sin(end) * radius;
+            canvas.drawCircle(kx, ky, stroke * 0.78f, knob);
+            canvas.drawCircle(kx, ky, stroke * 0.42f, knobCore);
         }
 
         // valore centrato sul centro dell'arco, unità nell'apertura in basso

@@ -24,6 +24,7 @@ public final class Prefs {
     private static final String KEY_DEMO = "demo_data";
     private static final String KEY_MAX_SPEED = "max_speed";
     private static final String KEY_MAX_RPM = "max_rpm";
+    private static final String KEY_SHIFT_RPM = "shift_rpm";
 
     /** Cilindrate dei motori benzina della Panda 169. */
     public static final int CC_11 = 1108;
@@ -68,6 +69,15 @@ public final class Prefs {
 
     public static void setMaxRpm(Context c, int rpm) {
         sp(c).edit().putInt(KEY_MAX_RPM, rpm).apply();
+    }
+
+    /** Giri/min da cui compare la freccia "cambia marcia". */
+    public static int getShiftRpm(Context c) {
+        return sp(c).getInt(KEY_SHIFT_RPM, 6000);
+    }
+
+    public static void setShiftRpm(Context c, int rpm) {
+        sp(c).edit().putInt(KEY_SHIFT_RPM, rpm).apply();
     }
 
     /** Dati finti al posto di quelli dell'auto, per provare la grafica senza adattatore OBD. */

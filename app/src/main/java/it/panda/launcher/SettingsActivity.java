@@ -275,6 +275,7 @@ public class SettingsActivity extends Activity {
         addHint(R.string.pref_gauges_hint);
         addStepper(R.string.pref_max_speed, Prefs.getMaxSpeed(this), 10, 60, 400, " km/h", v -> Prefs.setMaxSpeed(this, v));
         addStepper(R.string.pref_max_rpm, Prefs.getMaxRpm(this), 500, 3000, 12000, " giri/min", v -> Prefs.setMaxRpm(this, v));
+        addStepper(R.string.pref_shift_rpm, Prefs.getShiftRpm(this), 100, 2000, 12000, " giri/min", v -> Prefs.setShiftRpm(this, v));
     }
 
     /** Riga con etichetta e tasti − / + (senza tastiera a schermo, che sulle autoradio spesso manca). */

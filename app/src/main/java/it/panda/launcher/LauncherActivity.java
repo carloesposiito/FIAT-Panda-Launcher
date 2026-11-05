@@ -116,6 +116,8 @@ public class LauncherActivity extends Activity
     private SegmentBarView rpmBar;
     private long lastSparkMs;
     private int maxRpm = 7000;
+    private int shiftRpm = 6000;
+    private View shiftArrow;
     private MetricCellView cellInstantCar;
     private MetricCellView cellCoolant, cellOil, cellBattery, cellFuel;
 
@@ -579,6 +581,18 @@ public class LauncherActivity extends Activity
         rpmSpark = findViewById(R.id.rpm_spark);
         rpmBar = findViewById(R.id.rpm_bar);
         gearShift = findViewById(R.id.gear_shift);
+        shiftArrow = findViewById(R.id.shift_arrow);
+        // rpm e marce larghi come l'arco del tachimetro
+        View rpmGroup = findViewById(R.id.rpm_group), gearGroup = findViewById(R.id.gear_group);
+        speedGauge.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            int w = Math.round(speedGauge.getArcWidth());
+            for (View group : new View[]{rpmGroup, gearGroup}) {
+                if (w > 0 && group.getLayoutParams().width != w) {
+                    group.getLayoutParams().width = w;
+                    group.requestLayout();
+                }
+            }
+        });
         cellInstantCar = findViewById(R.id.cell_instant_car);
         cellCoolant = findViewById(R.id.cell_coolant);
         cellOil = findViewById(R.id.cell_oil);
@@ -632,6 +646,9 @@ public class LauncherActivity extends Activity
         speedGauge.setValue(s.speedKmh);
         // la marcia si legge sullo schema della leva (folle = barra centrale accesa)
         gearShift.setGear(s.gear == null || s.gear < 0 ? null : s.gear);
+        // freccia: giri oltre la soglia scelta e una marcia più alta da inserire (non in folle, non in quinta)
+        boolean canShiftUp = s.gear == null || s.gear < 0 || (s.gear >= 1 && s.gear < 5);
+        shiftArrow.setVisibility(s.rpm != null && s.rpm >= shiftRpm && canShiftUp ? View.VISIBLE : View.GONE);
         // giri arrotondati a 10; rosso nella zona di fuori giri
         if (s.rpm != null) {
             rpmValue.setText(String.valueOf(Math.round(s.rpm / 10.0) * 10));
@@ -766,6 +783,7 @@ public class LauncherActivity extends Activity
     private void showNoLiveData() {
         speedGauge.setValue(null);
         gearShift.setGear(null);
+        shiftArrow.setVisibility(View.GONE);
         showNoRpm();
         showInstant(dash(), R.string.unit_l100);
     }
@@ -782,6 +800,7 @@ public class LauncherActivity extends Activity
         int maxSpeed = Prefs.getMaxSpeed(this);
         speedGauge.configure(maxSpeed, 0, maxSpeed > 210 ? 40 : 20);
         maxRpm = Prefs.getMaxRpm(this);
+        shiftRpm = Prefs.getShiftRpm(this);
         rpmSpark.setMax(maxRpm);
         rpmBar.setRedFrom(RPM_RED_FROM);
     }

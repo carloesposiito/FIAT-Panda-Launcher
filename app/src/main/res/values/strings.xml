@@ -53,6 +53,8 @@
     <string name="pref_gauges_hint">Fondo scala di tachimetro e contagiri: impostalo uguale a quello dell\'auto, così gli strumenti corrispondono.</string>
     <string name="pref_max_speed">Fondo scala tachimetro</string>
     <string name="pref_max_rpm">Fondo scala contagiri</string>
+    <string name="pref_shift_rpm">Giri per cambiare marcia</string>
+    <string name="shift_up">cambia marcia</string>
     <string name="pref_demo">Dati dimostrativi</string>
     <string name="pref_demo_hint">Mostra valori finti nella Home, anche senza OBD, per provare la grafica. Spegnili per usare i dati reali.</string>
     <string name="alerts_read">Leggi allarmi</string>
