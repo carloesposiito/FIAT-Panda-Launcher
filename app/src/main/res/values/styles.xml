@@ -25,7 +25,6 @@
         <item name="android:textColor">@color/muted</item>
         <item name="android:textSize">12sp</item>
         <item name="android:letterSpacing">0.14</item>
-        <item name="android:fontFamily">sans-serif-condensed</item>
         <item name="android:textStyle">bold</item>
     </style>
 
@@ -50,12 +49,11 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textColor">@color/text</item>
         <item name="android:textSize">24sp</item>
-        <item name="android:fontFamily">sans-serif-condensed</item>
         <item name="android:textStyle">bold</item>
         <item name="android:fontFeatureSettings">tnum</item>
     </style>
 
-    <!-- Numero della marcia: stessa altezza dei numeri di tachimetro e contagiri (GaugeView.NUMBER_SP) -->
+    <!-- Numero della marcia: stessa altezza dei numeri di tachimetro e contagiri -->
     <style name="DriveNumber" parent="TileValue">
         <item name="android:textSize">32sp</item>
         <item name="android:includeFontPadding">false</item>
@@ -88,6 +86,22 @@
         <item name="android:layout_height">@dimen/app_cell</item>
         <item name="android:background">@drawable/bg_app_item</item>
         <item name="android:scaleType">center</item>
+    </style>
+
+    <!-- Tasto di azione (es. Leggi allarmi) -->
+    <style name="ActionButton">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">44dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:paddingStart">22dp</item>
+        <item name="android:paddingEnd">22dp</item>
+        <item name="android:background">@drawable/bg_action_button</item>
+        <item name="android:textColor">@drawable/text_action_button</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:gravity">center</item>
     </style>
 
     <style name="ViewToggle">

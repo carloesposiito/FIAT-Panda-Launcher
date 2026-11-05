@@ -2,7 +2,6 @@ package it.panda.launcher.ui;
 
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -12,7 +11,7 @@ import android.widget.TextView;
 import it.panda.launcher.R;
 
 /**
- * Casella di un dato: icona (facoltativa) a sinistra, sopra l'etichetta piccola, sotto valore e unità.
+ * Casella di un dato: icona (facoltativa) a sinistra, sopra l'etichetta piccola (facoltativa), sotto valore e unità.
  * Nel layout: {@code <it.panda.launcher.ui.MetricCellView app:label="Acqua" app:unit="°C" app:icon="water" />}.
  */
 public class MetricCellView extends LinearLayout {
@@ -33,25 +32,20 @@ public class MetricCellView extends LinearLayout {
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.MetricCellView);
         boolean large = a.getBoolean(R.styleable.MetricCellView_large, false);
         int padH = Math.round((large ? 16 : 8) * d), padV = Math.round((large ? 8 : 5) * d);
-        setPadding(padH, padV, padH, padV);
+        if (getPaddingLeft() == 0 && getPaddingRight() == 0) { // altrimenti vale quello del layout
+            setPadding(padH, padV, padH, padV);
+        }
 
         String labelText = a.getString(R.styleable.MetricCellView_label);
         String unitText = a.getString(R.styleable.MetricCellView_unit);
         int iconIndex = a.getInt(R.styleable.MetricCellView_icon, 0);
         boolean accentValue = a.getBoolean(R.styleable.MetricCellView_accent, false);
+        int iconPx = a.getDimensionPixelSize(R.styleable.MetricCellView_iconSize, Math.round((large ? 40 : 24) * d));
         a.recycle();
 
         icon = new MetricIconView(context);
         icon.setType(MetricIconView.Type.values()[iconIndex]);
-        int iconSize = Math.round((large ? 40 : 24) * d);
-        LayoutParams iconLp = new LayoutParams(iconSize, iconSize);
-        iconLp.setMarginEnd(Math.round((large ? 14 : 8) * d));
-        addView(icon, iconLp);
         icon.setVisibility(iconIndex == 0 ? GONE : VISIBLE);
-
-        LinearLayout texts = new LinearLayout(context);
-        texts.setOrientation(VERTICAL);
-        addView(texts, new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f));
 
         TextView label = new TextView(context);
         label.setText(labelText);
@@ -59,23 +53,16 @@ public class MetricCellView extends LinearLayout {
         label.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 15 : 11);
         label.setSingleLine(true);
         label.setIncludeFontPadding(false);
-        texts.addView(label);
-
-        LinearLayout row = new LinearLayout(context);
-        row.setOrientation(HORIZONTAL);
-        row.setBaselineAligned(true);
-        texts.addView(row);
 
         value = new TextView(context);
         value.setText(R.string.no_value);
         defaultValueColor = context.getColor(accentValue ? R.color.accent : R.color.text);
         value.setTextColor(defaultValueColor);
         value.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 34 : 19);
-        value.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
+        value.setTypeface(Fonts.bold(context));
         value.setFontFeatureSettings("tnum");
         value.setSingleLine(true);
         value.setIncludeFontPadding(false);
-        row.addView(value);
 
         unit = new TextView(context);
         unit.setText(unitText);
@@ -83,6 +70,23 @@ public class MetricCellView extends LinearLayout {
         unit.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 16 : 11);
         unit.setSingleLine(true);
         unit.setPadding(Math.round((large ? 5 : 3) * d), 0, 0, 0);
+
+        LayoutParams iconLp = new LayoutParams(iconPx, iconPx);
+        iconLp.setMarginEnd(Math.round((large ? 14 : 8) * d));
+        addView(icon, iconLp);
+
+        // a destra: etichetta (se c'è) sopra, valore e unità sotto
+        LinearLayout texts = new LinearLayout(context);
+        texts.setOrientation(VERTICAL);
+        addView(texts, new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f));
+        if (labelText != null) {
+            texts.addView(label);
+        }
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(HORIZONTAL);
+        row.setBaselineAligned(true);
+        texts.addView(row);
+        row.addView(value);
         row.addView(unit);
     }
 

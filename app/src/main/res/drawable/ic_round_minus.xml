@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Tasto volume − della colonna app: stesso aspetto delle icone delle app -->
+<!-- Tasto volume − della colonna: cerchio grafite con anello -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="@dimen/app_icon" android:height="@dimen/app_icon"
     android:viewportWidth="48" android:viewportHeight="48">
     <path
-        android:fillColor="#E9EBEE"
-        android:pathData="M24,0a24,24 0,1 1,0 48a24,24 0,1 1,0 -48z" />
+        android:fillColor="#1B222B"
+        android:strokeColor="#3A4350"
+        android:strokeWidth="1.5"
+        android:pathData="M24,0.75a23.25,23.25 0,1 1,0 46.5a23.25,23.25 0,1 1,0 -46.5z" />
     <path
-        android:strokeColor="#1D2128"
+        android:strokeColor="#F4F6F8"
         android:strokeWidth="3.5"
         android:strokeLineCap="round"
-        android:pathData="M14,24h20" />
+        android:pathData="M15,24h18" />
 </vector>

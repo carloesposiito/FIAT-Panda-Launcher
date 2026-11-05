@@ -1,30 +1,21 @@
 package it.panda.launcher.ui;
 
 import android.content.Context;
-import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.graphics.Typeface;
 import android.util.AttributeSet;
-import android.util.TypedValue;
 import android.view.View;
-
-import java.util.Locale;
 
 import it.panda.launcher.R;
 
 /**
  * Strumento circolare come quelli del quadro: arco di 240° aperto in basso, tacche, zona rossa
- * facoltativa, valore al centro e unità nell'apertura in basso. Usato per velocità e giri.
- *
- * Nel layout: {@code app:gaugeMax="7000" app:gaugeRedFrom="6000" app:gaugeTickStep="1000"
- * app:gaugeUnit="rpm" app:gaugeRoundTo="10"}.
+ * facoltativa, valore al centro e unità nell'apertura in basso. Scala e unità si impostano da codice
+ * con {@link #configure} e {@link #setUnit}.
  */
 public class GaugeView extends View {
 
-    /** Grandezza minima del numero; negli strumenti grandi cresce col raggio. */
-    public static final float NUMBER_SP = 32f;
     private static final float START = 150f;
     private static final float SWEEP = 240f;
 
@@ -38,9 +29,8 @@ public class GaugeView extends View {
     private final float density;
     private final int accent, crit;
 
-    private final float max, redFrom, tickStep;
-    private final int roundTo;
-    private final String unitText;
+    private float max = 100f, redFrom = 0f, tickStep = 0f;
+    private String unitText = "";
 
     private Float target;
     private float shown;
@@ -51,36 +41,42 @@ public class GaugeView extends View {
         accent = context.getColor(R.color.accent);
         crit = context.getColor(R.color.crit);
 
-        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.GaugeView);
-        max = a.getFloat(R.styleable.GaugeView_gaugeMax, 100f);
-        redFrom = a.getFloat(R.styleable.GaugeView_gaugeRedFrom, 0f);
-        tickStep = a.getFloat(R.styleable.GaugeView_gaugeTickStep, 0f);
-        roundTo = Math.max(1, a.getInt(R.styleable.GaugeView_gaugeRoundTo, 1));
-        String u = a.getString(R.styleable.GaugeView_gaugeUnit);
-        unitText = u != null ? u : "";
-        a.recycle();
-
         float stroke = 6 * density;
         track.setStyle(Paint.Style.STROKE);
         track.setStrokeWidth(stroke);
         track.setStrokeCap(Paint.Cap.ROUND);
-        track.setColor(0xFF1D2128);
+        track.setColor(context.getColor(R.color.line));
         red.set(track);
         red.setStrokeCap(Paint.Cap.BUTT);
-        red.setColor(0x66E5534B);
+        red.setColor(0x66FF3B3B);
         fill.set(track);
         tick.setStrokeWidth(1.2f * density);
         tick.setStrokeCap(Paint.Cap.ROUND);
         tick.setColor(context.getColor(R.color.line_strong));
 
-        number.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
+        number.setTypeface(Fonts.bold(context));
         number.setTextAlign(Paint.Align.CENTER);
         number.setColor(context.getColor(R.color.text));
-        number.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, NUMBER_SP, getResources().getDisplayMetrics()));
         number.setFontFeatureSettings("tnum");
         unit.setTextAlign(Paint.Align.CENTER);
         unit.setColor(context.getColor(R.color.muted));
-        unit.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 12, getResources().getDisplayMetrics()));
+    }
+
+    /**
+     * @param max      fondo scala
+     * @param redFrom  da qui in su l'arco è rosso (0 = nessuna zona rossa)
+     * @param tickStep distanza tra le tacche (0 = nessuna)
+     */
+    public void configure(float max, float redFrom, float tickStep) {
+        this.max = Math.max(1f, max);
+        this.redFrom = redFrom;
+        this.tickStep = tickStep;
+        postInvalidateOnAnimation();
+    }
+
+    public void setUnit(String unit) {
+        this.unitText = unit != null ? unit : "";
+        postInvalidateOnAnimation();
     }
 
     /** @param value valore da mostrare, null se non disponibile (trattino e arco vuoto) */
@@ -93,10 +89,9 @@ public class GaugeView extends View {
     protected void onDraw(Canvas canvas) {
         // testo e spessore proporzionati allo strumento (stessa misura per tachimetro e contagiri)
         float base = Math.min(getWidth() / 2f, getHeight() / 1.75f);
-        float minNumber = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, NUMBER_SP, getResources().getDisplayMetrics());
-        number.setTextSize(Math.max(minNumber, base * 0.42f));
-        unit.setTextSize(Math.max(12 * density, base * 0.15f));
-        track.setStrokeWidth(Math.max(6 * density, base * 0.075f));
+        number.setTextSize(base * 0.46f);
+        unit.setTextSize(Math.max(10 * density, base * 0.17f));
+        track.setStrokeWidth(Math.max(4 * density, base * 0.085f));
         red.setStrokeWidth(track.getStrokeWidth());
         fill.setStrokeWidth(track.getStrokeWidth());
         float stroke = track.getStrokeWidth();
@@ -140,7 +135,7 @@ public class GaugeView extends View {
 
         // valore centrato sul centro dell'arco, unità nell'apertura in basso
         String text = target == null ? getContext().getString(R.string.no_value)
-                : String.format(Locale.ITALIAN, "%,d", Math.round(target / roundTo) * roundTo);
+                : String.valueOf(Math.round(target));
         float numberCenterOffset = -(number.ascent() + number.descent()) / 2f;
         canvas.drawText(text, cx, cy + numberCenterOffset, number);
         float unitY = Math.min(cy + radius * 0.5f + unit.getTextSize() * 0.35f, getHeight() - unit.descent() - 1);

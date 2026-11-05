@@ -68,6 +68,7 @@ public class SettingsActivity extends Activity {
         buildObdSection();
         buildNavSection();
         buildEngineSection();
+        buildGaugesSection();
         buildDisplaySection();
     }
 
@@ -267,6 +268,56 @@ public class SettingsActivity extends Activity {
         content.addView(group);
     }
 
+    // ---------------------------------------------------------------- strumenti
+
+    private void buildGaugesSection() {
+        addTitle(R.string.pref_gauges_title);
+        addHint(R.string.pref_gauges_hint);
+        addStepper(R.string.pref_max_speed, Prefs.getMaxSpeed(this), 10, 60, 400, " km/h", v -> Prefs.setMaxSpeed(this, v));
+        addStepper(R.string.pref_max_rpm, Prefs.getMaxRpm(this), 500, 3000, 12000, " giri/min", v -> Prefs.setMaxRpm(this, v));
+    }
+
+    /** Riga con etichetta e tasti − / + (senza tastiera a schermo, che sulle autoradio spesso manca). */
+    private void addStepper(int label, int value, int step, int min, int max, String unit,
+                            java.util.function.IntConsumer save) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(4), 0, dp(4));
+
+        TextView name = new TextView(this);
+        name.setText(label);
+        name.setTextColor(getColor(R.color.text));
+        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        row.addView(name, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        Button minus = new Button(this);
+        minus.setText("\u2212");
+        TextView shown = new TextView(this);
+        shown.setTextColor(getColor(R.color.accent));
+        shown.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        shown.setGravity(android.view.Gravity.CENTER);
+        Button plus = new Button(this);
+        plus.setText("+");
+        int[] current = {value};
+        Runnable refresh = () -> shown.setText(current[0] + unit);
+        refresh.run();
+        minus.setOnClickListener(v -> {
+            current[0] = Math.max(min, current[0] - step);
+            save.accept(current[0]);
+            refresh.run();
+        });
+        plus.setOnClickListener(v -> {
+            current[0] = Math.min(max, current[0] + step);
+            save.accept(current[0]);
+            refresh.run();
+        });
+        row.addView(minus);
+        row.addView(shown, new LinearLayout.LayoutParams(dp(150), LinearLayout.LayoutParams.WRAP_CONTENT));
+        row.addView(plus);
+        content.addView(row);
+    }
+
     // ---------------------------------------------------------------- schermata
 
     private void buildDisplaySection() {
@@ -282,6 +333,16 @@ public class SettingsActivity extends Activity {
             });
             addHint(R.string.pref_lock_revoke_hint);
         }
+
+        Switch demo = new Switch(this);
+        demo.setText(R.string.pref_demo);
+        demo.setTextColor(getColor(R.color.text));
+        demo.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        demo.setChecked(Prefs.getDemo(this));
+        demo.setPadding(0, dp(8), 0, dp(8));
+        demo.setOnCheckedChangeListener((b, checked) -> Prefs.setDemo(this, checked));
+        content.addView(demo);
+        addHint(R.string.pref_demo_hint);
 
         Button home = addButton(R.string.pref_choose_home);
         home.setOnClickListener(v -> openSettings(Settings.ACTION_HOME_SETTINGS));

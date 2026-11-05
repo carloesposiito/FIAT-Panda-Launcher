@@ -49,6 +49,12 @@
     <!-- avvisi -->
     <string name="alerts_title">Avvisi e diagnosi</string>
     <string name="alerts_none">Nessun avviso: spia motore spenta e nessun codice di errore.</string>
+    <string name="pref_gauges_title">Strumenti</string>
+    <string name="pref_gauges_hint">Fondo scala di tachimetro e contagiri: impostalo uguale a quello dell\'auto, così gli strumenti corrispondono.</string>
+    <string name="pref_max_speed">Fondo scala tachimetro</string>
+    <string name="pref_max_rpm">Fondo scala contagiri</string>
+    <string name="pref_demo">Dati dimostrativi</string>
+    <string name="pref_demo_hint">Mostra valori finti nella Home, anche senza OBD, per provare la grafica. Spegnili per usare i dati reali.</string>
     <string name="alerts_read">Leggi allarmi</string>
     <string name="alerts_reading">Lettura…</string>
     <string name="alerts_summary_unread">Allarmi non letti</string>

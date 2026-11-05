@@ -29,9 +29,9 @@ public final class ObdSnapshot {
     public TripComputer.Summary trip;
     /** Spia motore (MIL) accesa secondo la centralina; null se non letta. */
     public Boolean milOn;
-    /** Codici di errore memorizzati (modo 03) e in attesa di conferma (modo 07). */
     /** Quante volte spia e codici sono stati letti da questo collegamento; 0 = mai letti. */
     public int diagReads;
+    /** Codici di errore memorizzati (modo 03) e in attesa di conferma (modo 07). */
     public java.util.List<String> dtcStored;
     public java.util.List<String> dtcPending;
 

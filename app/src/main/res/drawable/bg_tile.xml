@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Riquadro: grafite con luce dall'alto e filo sottile -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/panel" />
-    <stroke android:width="1dp" android:color="@color/line" />
-    <corners android:radius="12dp" />
+    <gradient android:angle="270" android:startColor="#181E26" android:endColor="#0F1318" />
+    <stroke android:width="1dp" android:color="#2A323E" />
+    <corners android:radius="10dp" />
 </shape>

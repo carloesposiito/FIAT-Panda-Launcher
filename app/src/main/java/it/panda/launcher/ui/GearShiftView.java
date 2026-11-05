@@ -3,7 +3,6 @@ package it.panda.launcher.ui;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -53,7 +52,7 @@ public class GearShiftView extends View {
         discEdge.setStyle(Paint.Style.STROKE);
         discEdge.setStrokeWidth(2f);
         text.setTextAlign(Paint.Align.CENTER);
-        text.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
+        text.setTypeface(Fonts.bold(context));
         text.setTextSize(15f);
     }
 

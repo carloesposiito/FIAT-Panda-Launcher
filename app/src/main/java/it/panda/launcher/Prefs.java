@@ -21,6 +21,9 @@ public final class Prefs {
     private static final String KEY_PAGE = "home_page";
     private static final String KEY_OBD_ENABLED = "obd_enabled";
     private static final String KEY_NAV_ENABLED = "nav_enabled";
+    private static final String KEY_DEMO = "demo_data";
+    private static final String KEY_MAX_SPEED = "max_speed";
+    private static final String KEY_MAX_RPM = "max_rpm";
 
     /** Cilindrate dei motori benzina della Panda 169. */
     public static final int CC_11 = 1108;
@@ -47,6 +50,33 @@ public final class Prefs {
     public static boolean getObdEnabled(Context c) {
         SharedPreferences p = sp(c);
         return p.getBoolean(KEY_OBD_ENABLED, p.getString(KEY_OBD_ADDRESS, null) != null);
+    }
+
+    /** Fondo scala del tachimetro (km/h), da far corrispondere a quello dell'auto. */
+    public static int getMaxSpeed(Context c) {
+        return sp(c).getInt(KEY_MAX_SPEED, 160);
+    }
+
+    public static void setMaxSpeed(Context c, int kmh) {
+        sp(c).edit().putInt(KEY_MAX_SPEED, kmh).apply();
+    }
+
+    /** Fondo scala del contagiri (giri/min). */
+    public static int getMaxRpm(Context c) {
+        return sp(c).getInt(KEY_MAX_RPM, 7000);
+    }
+
+    public static void setMaxRpm(Context c, int rpm) {
+        sp(c).edit().putInt(KEY_MAX_RPM, rpm).apply();
+    }
+
+    /** Dati finti al posto di quelli dell'auto, per provare la grafica senza adattatore OBD. */
+    public static boolean getDemo(Context c) {
+        return sp(c).getBoolean(KEY_DEMO, false);
+    }
+
+    public static void setDemo(Context c, boolean on) {
+        sp(c).edit().putBoolean(KEY_DEMO, on).apply();
     }
 
     public static void setObdEnabled(Context c, boolean enabled) {

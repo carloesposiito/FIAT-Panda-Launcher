@@ -8,12 +8,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.ColorStateList;
-import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -44,8 +46,12 @@ import it.panda.launcher.obd.ObdManager;
 import it.panda.launcher.obd.ObdSnapshot;
 import it.panda.launcher.obd.TripComputer;
 import it.panda.launcher.ui.ConsumptionChartView;
+import it.panda.launcher.ui.Fonts;
+import it.panda.launcher.ui.GaugeView;
 import it.panda.launcher.ui.GearShiftView;
 import it.panda.launcher.ui.MetricCellView;
+import it.panda.launcher.ui.SegmentBarView;
+import it.panda.launcher.ui.SparklineView;
 
 /**
  * Schermata Home: app e volume a sinistra; a destra la barra in alto (ora) e le pagine da scorrere
@@ -55,6 +61,8 @@ public class LauncherActivity extends Activity
         implements ObdManager.Listener, NavReceiver.Listener {
 
     private static final int REQUEST_BT = 1;
+    /** Da questa frazione del fondo scala i giri sono "fuori giri" (6000 su 7000). */
+    private static final float RPM_RED_FROM = 6f / 7f;
     private static final Locale IT = Locale.ITALIAN;
 
     // colonna app
@@ -75,6 +83,10 @@ public class LauncherActivity extends Activity
     private LinearLayout pageDots;
     private boolean activityResumed;
     private boolean obdEnabled, navEnabled;
+    // dati dimostrativi (impostazioni → Schermata)
+    private boolean demo;
+    private final Handler demoHandler = new Handler(Looper.getMainLooper());
+    private long demoStartMs;
 
     // navigazione (goESP)
     private NavReceiver nav;
@@ -97,7 +109,13 @@ public class LauncherActivity extends Activity
     private String obdAddressAtPause;
     private boolean pausedOnce;
     private GearShiftView gearShift;
-    private MetricCellView cellSpeed, cellRpm, cellInstantCar;
+    private GaugeView speedGauge;
+    private TextView rpmValue;
+    private SparklineView rpmSpark;
+    private SegmentBarView rpmBar;
+    private long lastSparkMs;
+    private int maxRpm = 7000;
+    private MetricCellView cellInstantCar;
     private MetricCellView cellCoolant, cellOil, cellBattery, cellFuel;
 
     // avvisi
@@ -143,6 +161,7 @@ public class LauncherActivity extends Activity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_launcher);
+        Fonts.applyTo(findViewById(android.R.id.content));
 
         setupAppColumn();
         setupVolume();
@@ -361,7 +380,7 @@ public class LauncherActivity extends Activity
             case PAGE_NAV:
                 return navEnabled;
             default:
-                return obdEnabled;
+                return obdEnabled || demo;
         }
     }
 
@@ -392,8 +411,8 @@ public class LauncherActivity extends Activity
             available += on ? 1 : 0;
         }
         pageDots.setVisibility(available > 1 ? View.VISIBLE : View.GONE);
-        tilesLeft.setVisibility(obdEnabled ? View.VISIBLE : View.GONE);
-        tilesRight.setVisibility(obdEnabled ? View.VISIBLE : View.GONE);
+        tilesLeft.setVisibility(obdEnabled || demo ? View.VISIBLE : View.GONE);
+        tilesRight.setVisibility(obdEnabled || demo ? View.VISIBLE : View.GONE);
 
         int saved = Math.max(0, Math.min(pages.length - 1, Prefs.getPage(this)));
         int wanted = isAvailable(saved) ? saved : PAGE_CAR;
@@ -552,15 +571,18 @@ public class LauncherActivity extends Activity
     private void setupData() {
         tilesLeft = findViewById(R.id.tiles_left);
         tilesRight = findViewById(R.id.tiles_right);
-        cellSpeed = findViewById(R.id.cell_speed);
-        cellRpm = findViewById(R.id.cell_rpm);
+        speedGauge = findViewById(R.id.speed_gauge);
+        speedGauge.setUnit(getString(R.string.unit_kmh));
+        rpmValue = findViewById(R.id.rpm_value);
+        rpmSpark = findViewById(R.id.rpm_spark);
+        rpmBar = findViewById(R.id.rpm_bar);
         gearShift = findViewById(R.id.gear_shift);
         cellInstantCar = findViewById(R.id.cell_instant_car);
         cellCoolant = findViewById(R.id.cell_coolant);
         cellOil = findViewById(R.id.cell_oil);
         cellBattery = findViewById(R.id.cell_battery);
         cellFuel = findViewById(R.id.cell_fuel);
-        for (MetricCellView c : new MetricCellView[]{cellSpeed, cellRpm, cellInstantCar, cellCoolant, cellOil, cellBattery, cellFuel}) {
+        for (MetricCellView c : new MetricCellView[]{cellInstantCar, cellCoolant, cellOil, cellBattery, cellFuel}) {
             c.clear();
         }
 
@@ -576,6 +598,9 @@ public class LauncherActivity extends Activity
 
     @Override
     public void onObdState(ObdManager.State state, String detail) {
+        if (demo) {
+            return;
+        }
         // lo stato si legge nelle impostazioni (sezione OBD)
         obdConnected = state == ObdManager.State.CONNECTED;
         if (!obdConnected) {
@@ -589,13 +614,29 @@ public class LauncherActivity extends Activity
 
     @Override
     public void onObdData(ObdSnapshot s) {
+        if (!demo) {
+            showSnapshot(s);
+        }
+    }
+
+    private void showSnapshot(ObdSnapshot s) {
         // marcia, velocità, giri
-        cellSpeed.setValue(s.speedKmh != null ? String.valueOf(Math.round(s.speedKmh)) : dash());
+        speedGauge.setValue(s.speedKmh);
         // la marcia si legge sullo schema della leva (folle = barra centrale accesa)
         gearShift.setGear(s.gear == null || s.gear < 0 ? null : s.gear);
         // giri arrotondati a 10; rosso nella zona di fuori giri
-        cellRpm.setValue(s.rpm != null ? String.valueOf(Math.round(s.rpm / 10.0) * 10) : dash());
-        cellRpm.setValueColor(s.rpm != null && s.rpm >= 6000 ? getColor(R.color.crit) : null);
+        if (s.rpm != null) {
+            rpmValue.setText(String.valueOf(Math.round(s.rpm / 10.0) * 10));
+            rpmValue.setTextColor(getColor(s.rpm >= maxRpm * RPM_RED_FROM ? R.color.crit : R.color.text));
+            rpmBar.setFraction((float) (s.rpm / maxRpm));
+            long now = SystemClock.uptimeMillis();
+            if (now - lastSparkMs >= 500) {
+                lastSparkMs = now;
+                rpmSpark.add(s.rpm.floatValue());
+            }
+        } else {
+            showNoRpm();
+        }
 
 
         // dati auto: icona colorata e riempita in base al valore
@@ -651,6 +692,55 @@ public class LauncherActivity extends Activity
         updateAlerts();
     }
 
+    // ================================================================ dati dimostrativi
+
+    private final Runnable demoTick = new Runnable() {
+        @Override
+        public void run() {
+            showSnapshot(demoSnapshot((SystemClock.elapsedRealtime() - demoStartMs) / 1000.0));
+            demoHandler.postDelayed(this, 500);
+        }
+    };
+
+    private void startDemo() {
+        demo = true;
+        obdConnected = true;
+        diagReadsSeen = 1;
+        demoStartMs = SystemClock.elapsedRealtime();
+        demoHandler.removeCallbacks(demoTick);
+        demoHandler.post(demoTick);
+    }
+
+    private void stopDemo() {
+        demo = false;
+        demoHandler.removeCallbacks(demoTick);
+        obdConnected = false;
+        diagReadsSeen = 0;
+        lastSnapshot = null;
+        showNoLiveData();
+        updateAlerts();
+    }
+
+    /** Valori che variano piano, anche a tre cifre, per vedere come stanno nelle caselle. */
+    private static ObdSnapshot demoSnapshot(double t) {
+        ObdSnapshot s = new ObdSnapshot();
+        double wave = 0.5 + 0.5 * Math.sin(t / 6);
+        s.speedKmh = 150 * wave;
+        s.rpm = 800 + 5400 * wave;
+        s.gear = s.speedKmh < 5 ? 0 : (int) Math.min(5, 1 + s.speedKmh / 32);
+        s.coolantC = 95 + 10 * Math.sin(t / 9);
+        s.oilC = 105 + 20 * Math.sin(t / 11);
+        s.batteryV = 14.0 + 0.4 * Math.sin(t / 5);
+        s.fuelLevelPct = 100 - (t % 100);
+        s.loadPct = 20 + 60 * wave;
+        s.consumptionL100 = 4 + 8 * wave;
+        s.milOn = false;
+        s.diagReads = 1;
+        s.dtcStored = new ArrayList<>();
+        s.dtcPending = new ArrayList<>();
+        return s;
+    }
+
     /** Consumo istantaneo: sia nella casella accanto all'auto sia in quella della pagina consumi. */
     private void showInstant(String value, int unitRes) {
         for (MetricCellView c : new MetricCellView[]{cellInstant, cellInstantCar}) {
@@ -666,11 +756,26 @@ public class LauncherActivity extends Activity
 
     /** OBD scollegato: via i dati in tempo reale (il trip resta). */
     private void showNoLiveData() {
-        cellSpeed.setValue(dash());
+        speedGauge.setValue(null);
         gearShift.setGear(null);
-        cellRpm.setValue(dash());
-        cellRpm.setValueColor(null);
+        showNoRpm();
         showInstant(dash(), R.string.unit_l100);
+    }
+
+    private void showNoRpm() {
+        rpmValue.setText(dash());
+        rpmValue.setTextColor(getColor(R.color.text));
+        rpmBar.setFraction(0);
+        rpmSpark.clear();
+    }
+
+    /** Fondo scala di tachimetro e contagiri, come scelto nelle impostazioni. */
+    private void applyGaugeScales() {
+        int maxSpeed = Prefs.getMaxSpeed(this);
+        speedGauge.configure(maxSpeed, 0, maxSpeed > 210 ? 40 : 20);
+        maxRpm = Prefs.getMaxRpm(this);
+        rpmSpark.setMax(maxRpm);
+        rpmBar.setRedFrom(RPM_RED_FROM);
     }
 
     // ================================================================ avvisi
@@ -751,7 +856,9 @@ public class LauncherActivity extends Activity
         t.setTextSize(sp);
         t.setLineSpacing(0, 1.15f);
         if (bold) {
-            t.setTypeface(Typeface.DEFAULT_BOLD);
+            t.setTypeface(Fonts.bold(this));
+        } else {
+            t.setTypeface(Fonts.regular(this));
         }
         t.setPadding(0, Math.round(2 * getResources().getDisplayMetrics().density), 0, 0);
         return t;
@@ -844,6 +951,13 @@ public class LauncherActivity extends Activity
         Immersive.apply(this);
         activityResumed = true;
         obd.setVisible(true);
+        applyGaugeScales();
+        boolean wantDemo = Prefs.getDemo(this);
+        if (wantDemo) { // onPause ferma il timer: si riparte a ogni ritorno nella Home
+            startDemo();
+        } else if (demo) {
+            stopDemo();
+        }
         updateVolume();
         updateDate();
         fillAppColumn(); // le app scelte possono essere cambiate nelle impostazioni
@@ -862,6 +976,7 @@ public class LauncherActivity extends Activity
     protected void onPause() {
         super.onPause();
         activityResumed = false;
+        demoHandler.removeCallbacks(demoTick);
         obd.setVisible(false);
         obdAddressAtPause = Prefs.getObdAddress(this);
         pausedOnce = true;
