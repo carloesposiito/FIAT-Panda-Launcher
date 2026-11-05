@@ -40,7 +40,9 @@ public class MetricCellView extends LinearLayout {
         String unitText = a.getString(R.styleable.MetricCellView_unit);
         int iconIndex = a.getInt(R.styleable.MetricCellView_icon, 0);
         boolean centered = a.getBoolean(R.styleable.MetricCellView_centered, false);
-        boolean alignEnd = a.getBoolean(R.styleable.MetricCellView_alignEnd, false);
+        boolean compact = a.getBoolean(R.styleable.MetricCellView_compact, false);
+        boolean centerContent = a.getBoolean(R.styleable.MetricCellView_centerContent, false);
+        String valueTemplate = a.getString(R.styleable.MetricCellView_valueTemplate);
         boolean accentValue = a.getBoolean(R.styleable.MetricCellView_accent, false);
         int iconPx = a.getDimensionPixelSize(R.styleable.MetricCellView_iconSize, Math.round((large ? 40 : 24) * d));
         a.recycle();
@@ -60,28 +62,33 @@ public class MetricCellView extends LinearLayout {
         value.setText(R.string.no_value);
         defaultValueColor = context.getColor(accentValue ? R.color.accent : R.color.text);
         value.setTextColor(defaultValueColor);
-        value.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 34 : 19);
+        value.setTextSize(TypedValue.COMPLEX_UNIT_SP, compact ? 28 : large ? 34 : 19);
         value.setTypeface(Fonts.bold(context));
         value.setFontFeatureSettings("tnum");
         value.setSingleLine(true);
         value.setIncludeFontPadding(false);
 
+        if (valueTemplate != null) { // larghezza fissa, numero allineato a destra: icona e unità non si muovono
+            value.setMinWidth((int) Math.ceil(value.getPaint().measureText(valueTemplate)));
+            value.setGravity(Gravity.END);
+        }
+
         unit = new TextView(context);
         unit.setText(unitText);
         unit.setTextColor(context.getColor(R.color.muted));
-        unit.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 16 : 11);
+        unit.setTextSize(TypedValue.COMPLEX_UNIT_SP, compact ? 13 : large ? 16 : 11);
         unit.setSingleLine(true);
         unit.setPadding(Math.round((large ? 5 : 3) * d), 0, 0, 0);
 
         LayoutParams iconLp = new LayoutParams(iconPx, iconPx);
-        iconLp.setMarginEnd(Math.round((large ? 14 : 8) * d));
+        iconLp.setMarginEnd(Math.round((compact ? 8 : large ? 14 : 8) * d));
         addView(icon, iconLp);
 
         // a destra: etichetta (se c'è) sopra, valore e unità sotto
         LinearLayout texts = new LinearLayout(context);
         texts.setOrientation(VERTICAL);
-        if (alignEnd) { // contenuto a destra: niente spazio che si allarga a sinistra
-            setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        if (centerContent) { // contenuto raggruppato al centro: niente spazio che si allarga
+            setGravity(Gravity.CENTER);
             addView(texts, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
         } else {
             addView(texts, new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f));

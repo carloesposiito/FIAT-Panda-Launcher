@@ -249,91 +249,135 @@
                     android:layout_marginTop="10dp"
                     android:layout_marginBottom="22dp">
 
-                    <ImageView
-                        android:id="@+id/car_image"
-                        android:layout_width="526dp"
-                        android:layout_height="match_parent"
-                        android:layout_marginStart="71.5dp"
-                        android:layout_marginTop="54dp"
-                        android:layout_marginEnd="14dp"
-                        android:layout_marginBottom="98dp"
-                        android:contentDescription="@string/app_name"
-                        android:scaleType="fitStart"
-                        android:src="@drawable/car_panda" />
-
-                    <it.panda.launcher.ui.MetricCellView
-                        android:id="@+id/cell_battery"
-                        android:layout_width="150dp"
-                        android:layout_height="64dp"
-                        android:layout_gravity="top|start"
-                        android:layout_marginStart="14dp"
-                        android:layout_marginTop="104dp"
-                        android:background="@drawable/bg_cell_translucent"
-                        android:contentDescription="@string/label_battery"
-                        android:paddingStart="4dp"
-                        android:paddingEnd="14dp"
-                        app:alignEnd="true"
-                        app:icon="battery"
-                        app:iconSize="40dp"
-                        app:large="true"
-                        app:unit="@string/unit_volt" />
-
-                    <it.panda.launcher.ui.MetricCellView
-                        android:id="@+id/cell_coolant"
-                        android:layout_width="150dp"
-                        android:layout_height="64dp"
-                        android:layout_gravity="top|start"
-                        android:layout_marginStart="14dp"
-                        android:layout_marginTop="24dp"
-                        android:background="@drawable/bg_cell_translucent"
-                        android:contentDescription="@string/label_coolant"
-                        android:paddingStart="4dp"
-                        android:paddingEnd="14dp"
-                        app:alignEnd="true"
-                        app:icon="water"
-                        app:iconSize="40dp"
-                        app:large="true"
-                        app:unit="@string/unit_celsius" />
-
-                    <it.panda.launcher.ui.MetricCellView
-                        android:id="@+id/cell_fuel"
-                        android:layout_width="176dp"
-                        android:layout_height="64dp"
-                        android:layout_gravity="bottom|start"
-                        android:layout_marginStart="358dp"
-                        android:layout_marginBottom="24dp"
-                        android:background="@drawable/bg_cell_translucent"
-                        android:contentDescription="@string/label_fuel"
-                        android:paddingStart="4dp"
-                        android:paddingEnd="14dp"
-                        app:alignEnd="true"
-                        app:icon="fuel"
-                        app:iconSize="40dp"
-                        app:large="true"
-                        app:unit="@string/unit_percent" />
-
-                    <it.panda.launcher.ui.MetricCellView
-                        android:id="@+id/cell_oil"
-                        android:layout_width="176dp"
-                        android:layout_height="64dp"
-                        android:layout_gravity="bottom|start"
-                        android:layout_marginStart="82dp"
-                        android:layout_marginBottom="24dp"
-                        android:background="@drawable/bg_cell_translucent"
-                        android:contentDescription="@string/label_oil"
-                        android:paddingStart="4dp"
-                        android:paddingEnd="14dp"
-                        app:alignEnd="true"
-                        app:icon="oil"
-                        app:iconSize="40dp"
-                        app:large="true"
-                        app:unit="@string/unit_celsius" />
-
-                    <!-- linee dai dati alla zona dell'auto -->
-                    <it.panda.launcher.ui.CalloutLinesView
-                        android:id="@+id/callouts"
+                    <!-- foto e fila di dati una sotto l'altra: la fila sta a 2,5dp dal bordo della foto -->
+                    <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent" />
+                        android:layout_height="match_parent"
+                        android:orientation="vertical">
+
+                        <ImageView
+                            android:id="@+id/car_image"
+                            android:layout_width="526dp"
+                            android:layout_height="0dp"
+                            android:layout_gravity="center_horizontal"
+                            android:layout_marginTop="40dp"
+                            android:layout_weight="1"
+                            android:contentDescription="@string/app_name"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/car_panda" />
+
+                        <!-- dati in una fila in basso, da davanti a dietro -->
+                        <LinearLayout
+                            android:layout_width="542dp"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_horizontal"
+                            android:layout_marginTop="2.5dp"
+                            android:layout_marginBottom="45dp"
+                            android:orientation="horizontal">
+
+                            <it.panda.launcher.ui.MetricCellView
+                                android:id="@+id/cell_coolant"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="4dp"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:background="@android:color/transparent"
+                                android:contentDescription="@string/label_coolant"
+                                android:paddingStart="10dp"
+                                android:paddingTop="2.5dp"
+                                android:paddingEnd="8dp"
+                                android:paddingBottom="2.5dp"
+                                app:icon="water"
+                                app:centerContent="true"
+                                app:compact="true"
+                                app:iconSize="30dp"
+                                app:large="true"
+                                app:valueTemplate="000"
+                                app:unit="@string/unit_celsius" />
+
+                            <View
+                                android:layout_width="1dp"
+                                android:layout_height="28dp"
+                                android:layout_gravity="center_vertical"
+                                android:background="@color/line_strong" />
+
+                            <it.panda.launcher.ui.MetricCellView
+                                android:id="@+id/cell_battery"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="4dp"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:background="@android:color/transparent"
+                                android:contentDescription="@string/label_battery"
+                                android:paddingStart="10dp"
+                                android:paddingTop="2.5dp"
+                                android:paddingEnd="8dp"
+                                android:paddingBottom="2.5dp"
+                                app:icon="battery"
+                                app:centerContent="true"
+                                app:compact="true"
+                                app:iconSize="30dp"
+                                app:large="true"
+                                app:valueTemplate="00,0"
+                                app:unit="@string/unit_volt" />
+
+                            <View
+                                android:layout_width="1dp"
+                                android:layout_height="28dp"
+                                android:layout_gravity="center_vertical"
+                                android:background="@color/line_strong" />
+
+                            <it.panda.launcher.ui.MetricCellView
+                                android:id="@+id/cell_oil"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="4dp"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:background="@android:color/transparent"
+                                android:contentDescription="@string/label_oil"
+                                android:paddingStart="10dp"
+                                android:paddingTop="2.5dp"
+                                android:paddingEnd="8dp"
+                                android:paddingBottom="2.5dp"
+                                app:icon="oil"
+                                app:centerContent="true"
+                                app:compact="true"
+                                app:iconSize="30dp"
+                                app:large="true"
+                                app:valueTemplate="000"
+                                app:unit="@string/unit_celsius" />
+
+                            <View
+                                android:layout_width="1dp"
+                                android:layout_height="28dp"
+                                android:layout_gravity="center_vertical"
+                                android:background="@color/line_strong" />
+
+                            <it.panda.launcher.ui.MetricCellView
+                                android:id="@+id/cell_fuel"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="4dp"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:background="@android:color/transparent"
+                                android:contentDescription="@string/label_fuel"
+                                android:paddingStart="10dp"
+                                android:paddingTop="2.5dp"
+                                android:paddingEnd="8dp"
+                                android:paddingBottom="2.5dp"
+                                app:icon="fuel"
+                                app:centerContent="true"
+                                app:compact="true"
+                                app:iconSize="30dp"
+                                app:large="true"
+                                app:valueTemplate="000"
+                                app:unit="@string/unit_percent" />
+                        </LinearLayout>
+                    </LinearLayout>
                 </FrameLayout>
             </FrameLayout>
 

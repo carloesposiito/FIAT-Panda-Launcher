@@ -46,7 +46,6 @@ import it.panda.launcher.obd.ObdManager;
 import it.panda.launcher.obd.ObdSnapshot;
 import it.panda.launcher.obd.TripComputer;
 import it.panda.launcher.ui.ConsumptionChartView;
-import it.panda.launcher.ui.CalloutLinesView;
 import it.panda.launcher.ui.Fonts;
 import it.panda.launcher.ui.GaugeView;
 import it.panda.launcher.ui.GearShiftView;
@@ -588,12 +587,6 @@ public class LauncherActivity extends Activity
         cellOil = findViewById(R.id.cell_oil);
         cellBattery = findViewById(R.id.cell_battery);
         cellFuel = findViewById(R.id.cell_fuel);
-        // punto di ogni dato sulla foto (frazioni dell'immagine): batteria e acqua sotto il cofano,
-        // serbatoio sul fianco posteriore, olio in basso davanti
-        ((CalloutLinesView) findViewById(R.id.callouts)).setup(findViewById(R.id.car_image),
-                new View[]{cellBattery, cellCoolant, cellFuel, cellOil},
-                new float[][]{{0.30f, 0.42f}, {0.37f, 0.38f}, {0.94f, 0.52f}, {0.24f, 0.72f}},
-                new boolean[]{true, true, false, false});
         for (MetricCellView c : new MetricCellView[]{cellInstantCar, cellCoolant, cellOil, cellBattery, cellFuel}) {
             c.clear();
         }
