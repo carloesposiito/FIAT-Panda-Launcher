@@ -62,7 +62,7 @@ public class MetricCellView extends LinearLayout {
         value.setText(R.string.no_value);
         defaultValueColor = context.getColor(accentValue ? R.color.accent : R.color.text);
         value.setTextColor(defaultValueColor);
-        value.setTextSize(TypedValue.COMPLEX_UNIT_SP, compact ? 28 : large ? 34 : 19);
+        value.setTextSize(TypedValue.COMPLEX_UNIT_SP, compact ? 32 : large ? 34 : 19);
         value.setTypeface(Fonts.bold(context));
         value.setFontFeatureSettings("tnum");
         value.setSingleLine(true);
@@ -76,7 +76,7 @@ public class MetricCellView extends LinearLayout {
         unit = new TextView(context);
         unit.setText(unitText);
         unit.setTextColor(context.getColor(R.color.muted));
-        unit.setTextSize(TypedValue.COMPLEX_UNIT_SP, compact ? 13 : large ? 16 : 11);
+        unit.setTextSize(TypedValue.COMPLEX_UNIT_SP, compact ? 15 : large ? 16 : 11);
         unit.setSingleLine(true);
         unit.setPadding(Math.round((large ? 5 : 3) * d), 0, 0, 0);
 
