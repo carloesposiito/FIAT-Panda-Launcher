@@ -3,6 +3,7 @@ package it.panda.launcher.ui;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.RadialGradient;
 import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.graphics.Shader;
@@ -29,6 +30,10 @@ public class GaugeView extends View {
     private final Paint number = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint unit = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint halo = new Paint(Paint.ANTI_ALIAS_FLAG);
+    /** Maschera: toglie l'alone sotto il centro, dissolvendolo, così non si vede il taglio in basso. */
+    private final Paint fade = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final int racing;
     private final Paint knob = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint knobCore = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -52,6 +57,7 @@ public class GaugeView extends View {
         density = getResources().getDisplayMetrics().density;
         accent = context.getColor(R.color.accent);
         crit = context.getColor(R.color.crit);
+        racing = context.getColor(R.color.racing);
         hot = 0xFFFF8A3D; // arancio a metà scala: l'arco scalda con la velocità
 
         float stroke = 6 * density;
@@ -128,6 +134,21 @@ public class GaugeView extends View {
         float cx = getWidth() / 2f;
         float cy = stroke / 2f + radius + 1;
         oval.set(cx - radius, cy - radius, cx + radius, cy + radius);
+
+        // alone rosso dietro lo strumento, come la retroilluminazione di un quadro
+        // morbido: tre passaggi di opacità che arrivano a zero prima del bordo della vista, e dissolvenza verso il basso
+        float haloR = Math.min(cx, cy);
+        int rgb = racing & 0x00FFFFFF;
+        int layer = canvas.saveLayer(0, 0, getWidth(), getHeight(), null);
+        fade.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN));
+        halo.setShader(new RadialGradient(cx, cy, haloR,
+                new int[]{0x2A000000 | rgb, 0x12000000 | rgb, rgb},
+                new float[]{0f, 0.6f, 1f}, android.graphics.Shader.TileMode.CLAMP));
+        canvas.drawCircle(cx, cy, haloR, halo);
+        fade.setShader(new android.graphics.LinearGradient(0, cy, 0, getHeight(), 0xFF000000, 0x00000000,
+                android.graphics.Shader.TileMode.CLAMP));
+        canvas.drawRect(0, cy, getWidth(), getHeight(), fade);
+        canvas.restoreToCount(layer);
 
         // anello interno sottile: dà profondità allo strumento
         float ringR = radius - stroke * 1.9f;

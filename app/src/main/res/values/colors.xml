@@ -11,4 +11,6 @@
     <color name="ok">#35E0A1</color>
     <color name="cold">#4DA3FF</color>
     <color name="crit">#FF3B3B</color>
+    <!-- rosso racing: solo per i dettagli (unità, due punti dell'ora, filo dei separatori, alone) -->
+    <color name="racing">#E8262B</color>
 </resources>

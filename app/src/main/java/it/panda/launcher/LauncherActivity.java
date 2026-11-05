@@ -548,7 +548,9 @@ public class LauncherActivity extends Activity
     private void setupClock() {
         date = findViewById(R.id.date);
         date.setTypeface(Fonts.display(this));
-        ((TextView) findViewById(R.id.clock)).setTypeface(Fonts.display(this));
+        clock = findViewById(R.id.clock);
+        clock.setTypeface(Fonts.display(this));
+        shiftLights = findViewById(R.id.shift_lights);
         IntentFilter f = new IntentFilter();
         f.addAction(Intent.ACTION_TIME_TICK);
         f.addAction(Intent.ACTION_TIME_CHANGED);
@@ -558,7 +560,19 @@ public class LauncherActivity extends Activity
         updateDate();
     }
 
+    private TextView clock;
+    private it.panda.launcher.ui.ShiftLightsView shiftLights;
+
     private void updateDate() {
+        // ora con i due punti in rosso racing
+        String time = new SimpleDateFormat("HH:mm", IT).format(new Date());
+        android.text.SpannableString spannable = new android.text.SpannableString(time);
+        int colon = time.indexOf(':');
+        if (colon >= 0) {
+            spannable.setSpan(new android.text.style.ForegroundColorSpan(getColor(R.color.racing)), colon, colon + 1,
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        clock.setText(spannable);
         String text = new SimpleDateFormat("EEEE d MMMM", IT).format(new Date());
         date.setText(text.isEmpty() ? text : text.substring(0, 1).toUpperCase(IT) + text.substring(1));
     }
@@ -636,6 +650,8 @@ public class LauncherActivity extends Activity
         boolean shift = s.rpm != null && s.rpm >= shiftRpm && canShiftUp;
         shiftArrow.setColorFilter(getColor(over ? R.color.crit : R.color.accent));
         shiftArrow.setVisibility(shift || over ? View.VISIBLE : View.GONE);
+        // luci di cambio marcia: si accendono da 2500 giri fino al massimo
+        shiftLights.setFraction(s.rpm == null ? 0f : (float) ((s.rpm - 2500.0) / Math.max(1, redRpm - 2500)));
 
 
         // dati auto: icona colorata e riempita in base al valore
@@ -758,6 +774,7 @@ public class LauncherActivity extends Activity
         speedGauge.setValue(null);
         gearShift.setGear(null);
         shiftArrow.setVisibility(View.GONE);
+        shiftLights.setFraction(0f);
         showInstant(dash(), R.string.unit_l100);
     }
 

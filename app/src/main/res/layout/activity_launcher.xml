@@ -131,22 +131,21 @@
                 android:singleLine="true"
                 android:textSize="38sp" />
 
-            <TextClock
+            <TextView
                 android:id="@+id/clock"
                 style="@style/TileValue"
-                android:format12Hour="HH:mm"
-                android:format24Hour="HH:mm"
                 android:includeFontPadding="false"
+                android:text="@string/no_value"
                 android:textSize="60sp" />
         </LinearLayout>
 
-        <View
+        <it.panda.launcher.ui.ShiftLightsView
+            android:id="@+id/shift_lights"
             android:layout_width="match_parent"
-            android:layout_height="1dp"
+            android:layout_height="7dp"
             android:layout_marginStart="25dp"
             android:layout_marginTop="4dp"
-            android:layout_marginEnd="36.5dp"
-            android:background="@color/line_strong" />
+            android:layout_marginEnd="36.5dp" />
 
         <!-- ===== Pagine: se ne vede una alla volta ===== -->
         <FrameLayout
@@ -166,7 +165,7 @@
                     android:layout_width="212dp"
                     android:layout_height="match_parent"
                     android:layout_marginStart="25dp"
-                    android:layout_marginTop="39dp"
+                    android:layout_marginTop="33dp"
                     android:layout_marginBottom="22dp"
                     android:orientation="vertical"
                     android:paddingTop="12dp">
@@ -186,7 +185,7 @@
                         android:layout_marginTop="18dp"
                         android:layout_marginEnd="8dp"
                         android:layout_marginBottom="20dp"
-                        android:background="@color/line_strong" />
+                        android:background="@drawable/bg_sep_racing" />
 
                         <!-- marce: schema del cambio, con la freccia "cambia marcia" sul lato destro -->
                         <FrameLayout
@@ -218,7 +217,7 @@
                         android:layout_marginTop="20dp"
                         android:layout_marginEnd="8dp"
                         android:layout_marginBottom="18dp"
-                        android:background="@color/line_strong" />
+                        android:background="@drawable/bg_sep_racing" />
 
                     <!-- consumo istantaneo: largo quanto l'arco del tachimetro, come giri e marce -->
                         <LinearLayout
@@ -252,7 +251,7 @@
                     android:layout_height="match_parent"
                     android:layout_gravity="start"
                     android:layout_marginStart="237dp"
-                    android:layout_marginTop="39dp"
+                    android:layout_marginTop="33dp"
                     android:layout_marginBottom="22dp">
 
                     <!-- foto e fila di dati una sotto l'altra: la fila sta a 2,5dp dal bordo della foto -->
