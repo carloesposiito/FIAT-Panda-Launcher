@@ -32,7 +32,7 @@ public final class TripComputer {
         public final double movingSeconds;
         public final double maxSpeedKmh;
 
-        Summary(double fuelLiters, double distanceKm, double seconds, double movingSeconds, double maxSpeedKmh) {
+        public Summary(double fuelLiters, double distanceKm, double seconds, double movingSeconds, double maxSpeedKmh) {
             this.fuelLiters = fuelLiters;
             this.distanceKm = distanceKm;
             this.seconds = seconds;

@@ -23,8 +23,6 @@ public final class ObdSnapshot {
     /** Consumo istantaneo, l/100 km (null da fermi). */
     public Double consumptionL100;
 
-    /** Viaggio corrente: dall'ultimo collegamento (di solito l'accensione). */
-    public TripComputer.Summary drive;
     /** Trip: accumulato fino all'azzeramento manuale. */
     public TripComputer.Summary trip;
     /** Spia motore (MIL) accesa secondo la centralina; null se non letta. */

@@ -17,17 +17,19 @@ public final class Prefs {
     private static final String KEY_FAVORITES = "favorite_apps";
     private static final String KEY_APP_SLOTS = "app_slots";
     private static final String KEY_TRIP = "trip_state";
-    private static final String KEY_TRIP_TAB = "trip_tab";
     private static final String KEY_PAGE = "home_page";
     private static final String KEY_OBD_ENABLED = "obd_enabled";
     private static final String KEY_NAV_ENABLED = "nav_enabled";
     private static final String KEY_DEMO = "demo_data";
     private static final String KEY_CAR_DATA = "car_data";
-    private static final String KEY_BORDERS = "debug_borders";
     private static final String KEY_SHIFT_LIGHTS = "shift_lights";
     private static final String KEY_MAX_SPEED = "max_speed";
     private static final String KEY_RED_RPM = "red_rpm";
     private static final String KEY_SHIFT_RPM = "shift_rpm";
+    private static final String KEY_CALIB_ON = "fuel_calibration";
+    private static final String KEY_TANK_LITERS = "tank_liters";
+    private static final String KEY_CALIB_STATE = "fuel_calibration_state";
+    private static final String KEY_CALIB_EPOCH = "fuel_calibration_epoch";
 
     /** Cilindrate dei motori benzina della Panda 169. */
     public static final int CC_11 = 1108;
@@ -101,15 +103,6 @@ public final class Prefs {
         sp(c).edit().putBoolean(KEY_SHIFT_LIGHTS, on).apply();
     }
 
-    /** Contorni colorati attorno ai blocchi della Home, per vedere gli spazi. */
-    public static boolean getDebugBorders(Context c) {
-        return sp(c).getBoolean(KEY_BORDERS, false);
-    }
-
-    public static void setDebugBorders(Context c, boolean on) {
-        sp(c).edit().putBoolean(KEY_BORDERS, on).apply();
-    }
-
     /** Dati finti al posto di quelli dell'auto, per provare la grafica senza adattatore OBD. */
     public static boolean getDemo(Context c) {
         return sp(c).getBoolean(KEY_DEMO, false);
@@ -142,6 +135,44 @@ public final class Prefs {
 
     public static void setDisplacementCc(Context c, int cc) {
         sp(c).edit().putInt(KEY_DISPLACEMENT_CC, cc).apply();
+    }
+
+    // ---------------------------------------------------------------- taratura consumi
+
+    /** Corregge i consumi stimati confrontandoli con il calo del livello nel serbatoio. */
+    public static boolean getFuelCalibration(Context c) {
+        return sp(c).getBoolean(KEY_CALIB_ON, true);
+    }
+
+    public static void setFuelCalibration(Context c, boolean on) {
+        sp(c).edit().putBoolean(KEY_CALIB_ON, on).apply();
+    }
+
+    /** Capacità del serbatoio in litri (Panda 169: 38). */
+    public static int getTankLiters(Context c) {
+        return sp(c).getInt(KEY_TANK_LITERS, 38);
+    }
+
+    public static void setTankLiters(Context c, int liters) {
+        sp(c).edit().putInt(KEY_TANK_LITERS, liters).apply();
+    }
+
+    public static String getCalibrationState(Context c) {
+        return sp(c).getString(KEY_CALIB_STATE, null);
+    }
+
+    public static void setCalibrationState(Context c, String state) {
+        sp(c).edit().putString(KEY_CALIB_STATE, state).apply();
+    }
+
+    /** Cresce a ogni azzeramento dalle impostazioni: chi tiene la taratura in memoria riparte da zero. */
+    public static int getCalibrationEpoch(Context c) {
+        return sp(c).getInt(KEY_CALIB_EPOCH, 0);
+    }
+
+    public static void resetCalibration(Context c) {
+        SharedPreferences p = sp(c);
+        p.edit().remove(KEY_CALIB_STATE).putInt(KEY_CALIB_EPOCH, p.getInt(KEY_CALIB_EPOCH, 0) + 1).apply();
     }
 
     // ---------------------------------------------------------------- app nella colonna
@@ -190,15 +221,6 @@ public final class Prefs {
 
     public static void setTripState(Context c, String state) {
         sp(c).edit().putString(KEY_TRIP, state).apply();
-    }
-
-    /** true se nel riquadro consumi è selezionata la scheda "Trip" invece di "Viaggio". */
-    public static boolean getTripTab(Context c) {
-        return sp(c).getBoolean(KEY_TRIP_TAB, false);
-    }
-
-    public static void setTripTab(Context c, boolean trip) {
-        sp(c).edit().putBoolean(KEY_TRIP_TAB, trip).apply();
     }
 
     /** Pagina della Home mostrata per ultima (0 = auto 3D, 1 = dati auto, 2 = consumi). */

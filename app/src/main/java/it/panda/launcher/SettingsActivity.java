@@ -65,11 +65,10 @@ public class SettingsActivity extends Activity {
     private void build() {
         content.removeAllViews();
         buildAppsSection();
-        buildObdSection();
+        buildDataSection();
         buildNavSection();
-        buildEngineSection();
-        buildGaugesSection();
-        buildDisplaySection();
+        buildCarSection();
+        buildDevSection();
     }
 
     @Override
@@ -84,20 +83,14 @@ public class SettingsActivity extends Activity {
 
     private void buildAppsSection() {
         addTitle(R.string.pref_apps_title);
-        addHint(R.string.pref_apps_hint);
-        int slots = Prefs.getAppSlots(this);
-        if (slots > 0) {
-            addHintText(getString(R.string.pref_apps_slots, slots));
-        }
         Button edit = addButton(R.string.pref_apps_edit);
         edit.setOnClickListener(v -> startActivity(new Intent(this, AppPickerActivity.class)));
     }
 
     // ---------------------------------------------------------------- adattatore OBD
 
-    @SuppressLint("MissingPermission")
-    private void buildObdSection() {
-        addTitle(R.string.pref_obd_title);
+    private void buildDataSection() {
+        addTitle(R.string.pref_data_title);
 
         boolean enabled = Prefs.getObdEnabled(this);
         Switch use = new Switch(this);
@@ -111,11 +104,16 @@ public class SettingsActivity extends Activity {
             build();
         });
         content.addView(use);
-        if (!enabled) {
-            addHint(R.string.pref_obd_disabled_hint);
-            return;
+        if (enabled) {
+            buildObdAdapter();
         }
+        addSwitch(R.string.pref_car_data, Prefs.getCarData(this), checked -> Prefs.setCarData(this, checked));
+        addSwitch(R.string.pref_shift_lights, Prefs.getShiftLights(this), checked -> Prefs.setShiftLights(this, checked));
+    }
 
+    /** Stato del collegamento e scelta dell'adattatore ELM327. */
+    @SuppressLint("MissingPermission")
+    private void buildObdAdapter() {
         // stato del collegamento (protocollo usato o ultimo errore)
         String state = obdStateText(ObdManager.lastState());
         String detail = ObdManager.lastDetail();
@@ -124,7 +122,6 @@ public class SettingsActivity extends Activity {
                 : ObdManager.lastState() == ObdManager.State.ERROR ? R.color.crit : R.color.muted));
 
         addSubtitle(R.string.pref_obd_adapter);
-        addHint(R.string.pref_obd_hint);
 
         if (!BluetoothPermissions.canConnect(this)) {
             addHint(R.string.pref_need_permission);
@@ -199,7 +196,6 @@ public class SettingsActivity extends Activity {
             build();
         });
         content.addView(use);
-        addHint(R.string.pref_nav_hint);
         if (enabled) {
             NavReceiver.State s = NavReceiver.get(this).state();
             String text;
@@ -246,14 +242,13 @@ public class SettingsActivity extends Activity {
                 ask.setOnClickListener(v -> requestPermissions(BluetoothPermissions.runtimePermissions(), REQUEST_BT));
             }
         }
-        addHint(R.string.pref_nav_phone_settings);
     }
 
     // ---------------------------------------------------------------- motore
 
-    private void buildEngineSection() {
-        addTitle(R.string.pref_engine_title);
-        addHint(R.string.pref_engine_hint);
+    private void buildCarSection() {
+        addTitle(R.string.pref_car_title);
+        addSubtitle(R.string.pref_engine_title);
         RadioGroup group = new RadioGroup(this);
         int current = Prefs.getDisplacementCc(this);
         int[] cc = {Prefs.CC_11, Prefs.CC_12, Prefs.CC_14};
@@ -266,16 +261,30 @@ public class SettingsActivity extends Activity {
             rb.setOnClickListener(v -> Prefs.setDisplacementCc(this, value));
         }
         content.addView(group);
-    }
 
-    // ---------------------------------------------------------------- strumenti
-
-    private void buildGaugesSection() {
-        addTitle(R.string.pref_gauges_title);
-        addHint(R.string.pref_gauges_hint);
+        addSubtitle(R.string.pref_gauges_title);
         addStepper(R.string.pref_max_speed, Prefs.getMaxSpeed(this), 10, 60, 400, " km/h", v -> Prefs.setMaxSpeed(this, v));
         addStepper(R.string.pref_shift_rpm, Prefs.getShiftRpm(this), 100, 2000, 12000, " giri/min", v -> Prefs.setShiftRpm(this, v));
         addStepper(R.string.pref_red_rpm, Prefs.getRedRpm(this), 100, 2000, 12000, " giri/min", v -> Prefs.setRedRpm(this, v));
+
+        addSubtitle(R.string.pref_fuel_title);
+        addSwitch(R.string.pref_calib, Prefs.getFuelCalibration(this), checked -> Prefs.setFuelCalibration(this, checked));
+        addStepper(R.string.pref_tank, Prefs.getTankLiters(this), 1, 20, 100, " l", v -> Prefs.setTankLiters(this, v));
+        TextView factor = addHintText(calibrationText());
+        Button reset = addButton(R.string.pref_calib_reset);
+        reset.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
+                .setMessage(R.string.pref_calib_reset_confirm)
+                .setPositiveButton(R.string.reset, (d, w) -> {
+                    Prefs.resetCalibration(this);
+                    factor.setText(calibrationText());
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show());
+    }
+
+    private String calibrationText() {
+        double f = it.panda.launcher.obd.FuelCalibrator.factorOf(Prefs.getCalibrationState(this));
+        return getString(R.string.pref_calib_factor, f);
     }
 
     /** Riga con etichetta e tasti − / + (senza tastiera a schermo, che sulle autoradio spesso manca). */
@@ -319,22 +328,11 @@ public class SettingsActivity extends Activity {
         content.addView(row);
     }
 
-    // ---------------------------------------------------------------- schermata
+    // ---------------------------------------------------------------- sviluppo
 
-    private void buildDisplaySection() {
-        addTitle(R.string.pref_display_title);
-        addSwitch(R.string.pref_car_data, Prefs.getCarData(this), checked -> Prefs.setCarData(this, checked));
-        addHint(R.string.pref_car_data_hint);
-
-        addSwitch(R.string.pref_shift_lights, Prefs.getShiftLights(this), checked -> Prefs.setShiftLights(this, checked));
-        addHint(R.string.pref_shift_lights_hint);
-
-        addSwitch(R.string.pref_borders, Prefs.getDebugBorders(this), checked -> Prefs.setDebugBorders(this, checked));
-        addHint(R.string.pref_borders_hint);
-
+    private void buildDevSection() {
+        addTitle(R.string.pref_dev_title);
         addSwitch(R.string.pref_demo, Prefs.getDemo(this), checked -> Prefs.setDemo(this, checked));
-        addHint(R.string.pref_demo_hint);
-
         Button home = addButton(R.string.pref_choose_home);
         home.setOnClickListener(v -> openSettings(Settings.ACTION_HOME_SETTINGS));
         Button system = addButton(R.string.pref_android_settings);

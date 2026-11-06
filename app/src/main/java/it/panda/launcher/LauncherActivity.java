@@ -95,7 +95,6 @@ public class LauncherActivity extends Activity
     private String navArrowShown;
 
     // dati ai lati della foto dell'auto
-    private View tilesLeft;
 
     // ora
     private TextView date;
@@ -120,11 +119,9 @@ public class LauncherActivity extends Activity
     private boolean obdConnected;
 
     // consumi
-    private Button tabDrive, tabTrip;
     private View tripReset;
     private MetricCellView cellInstant, cellAvg, cellDistance, cellTime, cellAvgSpeed, cellFuelUsed;
     private ConsumptionChartView chart;
-    private TripComputer.Summary lastDrive, lastTrip;
     private List<Double> lastHistory;
 
     /** Aggiorna la colonna quando si installa o si disinstalla un'app. */
@@ -163,7 +160,7 @@ public class LauncherActivity extends Activity
             requestPermissions(BluetoothPermissions.runtimePermissions(), REQUEST_BT);
         }
         obd.start();
-        showTrip(obd.driveSummary(), obd.tripSummary());
+        showTrip(obd.tripSummary());
     }
 
     // ================================================================ colonna app
@@ -351,16 +348,9 @@ public class LauncherActivity extends Activity
         applyAvailability();
     }
 
-    /** Pagine disponibili: l'auto sempre; consumi e avvisi solo con l'OBD; navigazione solo se attiva. */
+    /** Pagine disponibili: tutte, tranne la navigazione se spenta. */
     private boolean isAvailable(int p) {
-        switch (p) {
-            case PAGE_CAR:
-                return true;
-            case PAGE_NAV:
-                return navEnabled;
-            default:
-                return obdEnabled || demo;
-        }
+        return p != PAGE_NAV || navEnabled;
     }
 
     /** Pagina disponibile successiva (dir = 1) o precedente (dir = -1), girando in tondo. */
@@ -376,7 +366,7 @@ public class LauncherActivity extends Activity
     }
 
     /**
-     * Applica le impostazioni: triangolo e caselle solo con l'OBD,
+     * Applica le impostazioni: pagine disponibili, caselle dati (con l'OBD spento mostrano il trattino),
      * e se la pagina mostrata non è più disponibile si torna all'auto (la pagina salvata resta,
      * così riattivando la funzione si torna lì).
      */
@@ -390,9 +380,10 @@ public class LauncherActivity extends Activity
             available += on ? 1 : 0;
         }
         pageDots.setVisibility(available > 1 ? View.VISIBLE : View.GONE);
-        tilesLeft.setVisibility(obdEnabled || demo ? View.VISIBLE : View.GONE);
-        boolean showCarData = Prefs.getCarData(this) && (obdEnabled || demo);
-        findViewById(R.id.car_data_row).setVisibility(showCarData ? View.VISIBLE : View.GONE); // con i separatori
+        findViewById(R.id.car_data_row).setVisibility(Prefs.getCarData(this) ? View.VISIBLE : View.GONE); // con i separatori
+        if (!obdEnabled && !demo) {
+            showNoLiveData();
+        }
 
         int saved = Math.max(0, Math.min(pages.length - 1, Prefs.getPage(this)));
         int wanted = isAvailable(saved) ? saved : PAGE_CAR;
@@ -469,6 +460,12 @@ public class LauncherActivity extends Activity
 
     @Override
     public void onNavData(NavData d) {
+        if (!demo) {
+            showNav(d);
+        }
+    }
+
+    private void showNav(NavData d) {
         if (d == null) {
             navActive.setVisibility(View.GONE);
             navIdle.setVisibility(View.VISIBLE);
@@ -565,7 +562,6 @@ public class LauncherActivity extends Activity
     // ================================================================ dati motore
 
     private void setupData() {
-        tilesLeft = findViewById(R.id.tiles_left);
         speedGauge = findViewById(R.id.speed_gauge);
         speedGauge.setUnit(getString(R.string.unit_kmh));
         gearShift = findViewById(R.id.gear_shift);
@@ -595,7 +591,15 @@ public class LauncherActivity extends Activity
             reading = true;
             alertsRead.setEnabled(false);
             alertsRead.setText(R.string.alerts_reading);
-            obd.requestDiagnostics();
+            if (demo) { // senza auto: dopo un attimo compaiono avvisi finti
+                demoHandler.postDelayed(() -> {
+                    demoFaults = true;
+                    reading = false;
+                    updateAlerts();
+                }, 1200);
+            } else {
+                obd.requestDiagnostics();
+            }
         });
         updateAlerts();
     }
@@ -682,7 +686,7 @@ public class LauncherActivity extends Activity
             showInstant(dash(), R.string.unit_l100);
         }
         lastHistory = s.history;
-        showTrip(s.drive, s.trip);
+        showTrip(s.trip);
 
         lastSnapshot = s;
         if (s.diagReads != diagReadsSeen) { // lettura di spia e codici completata
@@ -697,13 +701,19 @@ public class LauncherActivity extends Activity
     private final Runnable demoTick = new Runnable() {
         @Override
         public void run() {
-            showSnapshot(demoSnapshot((SystemClock.elapsedRealtime() - demoStartMs) / 1000.0));
+            double t = (SystemClock.elapsedRealtime() - demoStartMs) / 1000.0;
+            showSnapshot(demoSnapshot(t, demoFaults));
+            showNav(demoNav(t));
             demoHandler.postDelayed(this, 500);
         }
     };
 
+    /** Dopo "Leggi allarmi" in demo compaiono spia e codici finti. */
+    private boolean demoFaults;
+
     private void startDemo() {
         demo = true;
+        demoFaults = false;
         obdConnected = true;
         diagReadsSeen = 1;
         demoStartMs = SystemClock.elapsedRealtime();
@@ -713,7 +723,9 @@ public class LauncherActivity extends Activity
 
     private void stopDemo() {
         demo = false;
+        demoFaults = false;
         demoHandler.removeCallbacks(demoTick);
+        showNav(nav.last());
         obdConnected = false;
         diagReadsSeen = 0;
         lastSnapshot = null;
@@ -722,7 +734,7 @@ public class LauncherActivity extends Activity
     }
 
     /** Valori che variano piano, anche a tre cifre, per vedere come stanno nelle caselle. */
-    private static ObdSnapshot demoSnapshot(double t) {
+    private static ObdSnapshot demoSnapshot(double t, boolean faults) {
         ObdSnapshot s = new ObdSnapshot();
         double wave = 0.5 + 0.5 * Math.sin(t / 6);
         s.speedKmh = 150 * wave;
@@ -734,11 +746,38 @@ public class LauncherActivity extends Activity
         s.fuelLevelPct = 100 - (t % 100);
         s.loadPct = 20 + 60 * wave;
         s.consumptionL100 = 4 + 8 * wave;
-        s.milOn = false;
+        s.milOn = faults;
         s.diagReads = 1;
         s.dtcStored = new ArrayList<>();
         s.dtcPending = new ArrayList<>();
+        if (faults) {
+            s.dtcStored.add("P0301");
+            s.dtcStored.add("P0420");
+            s.dtcPending.add("P0171");
+        }
+        // trip finto: cresce col tempo, così le sei caselle e il grafico hanno qualcosa da mostrare
+        double km = t * 0.03;
+        s.trip = new TripComputer.Summary(km * 0.065, km, t * 2, t * 1.8, 150);
+        s.history = new ArrayList<>();
+        for (int i = 0; i < 120; i++) {
+            double w = 0.5 + 0.5 * Math.sin((t - (120 - i) * 3) / 6);
+            s.history.add(4 + 8 * w);
+        }
         return s;
+    }
+
+    /** Indicazione finta: la distanza scende e ogni 20 secondi cambia svolta. */
+    private static NavData demoNav(double t) {
+        String[][] steps = {
+                {"Via Roma verso Piazza Duomo", "ROTATORY_RIGHT"},
+                {"Strada Provinciale 123 verso San Giovanni in Persiceto Centro", "CONTINUE_LEFT"},
+                {"Viale dei Mille", "SLIGHT_RIGHT"},
+        };
+        int i = (int) (t / 20) % steps.length;
+        int meters = 50 * (int) ((1000 - (t % 20) * 45) / 50);
+        double remainingKm = Math.max(1, 18 - t * 0.01);
+        return NavData.parse(steps[i][0] + "#" + steps[i][1] + "#" + meters + "#m#17:39#"
+                + String.format(IT, "%.0f km", remainingKm) + "#22 min");
     }
 
     /** Consumo istantaneo: sia nella casella accanto all'auto sia in quella della pagina consumi. */
@@ -775,23 +814,6 @@ public class LauncherActivity extends Activity
         }
     }
 
-    /** Contorni colorati dei blocchi della Home (impostazione "Mostra i bordi"). */
-    private void applyBorders() {
-        boolean on = Prefs.getDebugBorders(this);
-        Object[][] borders = {
-                {R.id.tiles_left, R.drawable.debug_border_red},
-                {R.id.car_zone, R.drawable.debug_border_white},
-                {R.id.car_image, R.drawable.debug_border_green},
-                {R.id.cell_battery, R.drawable.debug_border_yellow},
-                {R.id.cell_coolant, R.drawable.debug_border_yellow},
-                {R.id.cell_fuel, R.drawable.debug_border_yellow},
-                {R.id.cell_oil, R.drawable.debug_border_yellow},
-        };
-        for (Object[] b : borders) {
-            findViewById((Integer) b[0]).setForeground(on ? getDrawable((Integer) b[1]) : null);
-        }
-    }
-
     // ================================================================ avvisi
 
     /** Aggiorna il tasto "Leggi allarmi" e la lista della pagina Avvisi. */
@@ -804,7 +826,7 @@ public class LauncherActivity extends Activity
     /** Firma degli avvisi mostrati: la lista si ricostruisce solo quando cambia. */
     private String alertsShown;
 
-    /** Pagina Avvisi: titolo riassuntivo e una riga per avviso (spia motore, codici, avvisi dai valori). */
+    /** Pagina Avvisi: una riga per avviso (spia motore, codici, avvisi dai valori). */
     private void fillAlertsPage(List<Diagnostics.Alert> alerts) {
         StringBuilder sig = new StringBuilder(obdConnected ? "on" : "off").append(diagReadsSeen > 0 ? "R" : "U");
         for (Diagnostics.Alert a : alerts) {
@@ -815,31 +837,8 @@ public class LauncherActivity extends Activity
         }
         alertsShown = sig.toString();
 
-        TextView summary = findViewById(R.id.alerts_summary);
         LinearLayout list = findViewById(R.id.alerts_list);
-        list.removeAllViews();
-        Diagnostics.Severity worst = Diagnostics.worst(alerts);
-        if (!obdConnected) {
-            summary.setText(R.string.alerts_summary_offline);
-            summary.setTextColor(getColor(R.color.muted));
-            list.addView(alertText(getString(R.string.alerts_offline), R.color.muted, 16, false));
-            return;
-        }
-        if (alerts.isEmpty() && diagReadsSeen == 0) {
-            summary.setText(R.string.alerts_summary_unread);
-            summary.setTextColor(getColor(R.color.muted));
-            list.addView(alertText(getString(R.string.alerts_unread), R.color.muted, 16, false));
-            return;
-        }
-        if (alerts.isEmpty()) {
-            summary.setText(R.string.alerts_summary_none);
-            summary.setTextColor(getColor(R.color.ok));
-            list.addView(alertText(getString(R.string.alerts_none), R.color.muted, 16, false));
-            return;
-        }
-        summary.setText(alerts.size() == 1 ? getString(R.string.alerts_summary_one)
-                : getString(R.string.alerts_summary_count, alerts.size()));
-        summary.setTextColor(getColor(worst == Diagnostics.Severity.RED ? R.color.crit : R.color.accent));
+        list.removeAllViews(); // nessun avviso (o OBD scollegato): lista vuota e nient'altro
 
         float d = getResources().getDisplayMetrics().density;
         for (Diagnostics.Alert a : alerts) {
@@ -860,6 +859,9 @@ public class LauncherActivity extends Activity
             texts.addView(alertText(a.detail, R.color.muted, 15, false));
             item.addView(texts, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
             list.addView(item);
+            View line = new View(this);
+            line.setBackgroundColor(getColor(R.color.line));
+            list.addView(line, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1));
         }
     }
 
@@ -881,8 +883,6 @@ public class LauncherActivity extends Activity
     // ================================================================ consumi e trip
 
     private void setupTrip() {
-        tabDrive = findViewById(R.id.tab_drive);
-        tabTrip = findViewById(R.id.tab_trip);
         tripReset = findViewById(R.id.trip_reset);
         cellInstant = findViewById(R.id.cell_instant);
         cellAvg = findViewById(R.id.cell_avg);
@@ -892,32 +892,18 @@ public class LauncherActivity extends Activity
         cellFuelUsed = findViewById(R.id.cell_fuel_used);
         chart = findViewById(R.id.consumption_chart);
 
-        tabDrive.setOnClickListener(v -> selectTripTab(false));
-        tabTrip.setOnClickListener(v -> selectTripTab(true));
         // azzeramento solo con conferma: in auto un tocco per sbaglio è facile
         tripReset.setOnClickListener(v -> new AlertDialog.Builder(this)
                 .setMessage(R.string.trip_reset_confirm)
                 .setPositiveButton(R.string.reset, (d, w) -> {
                     obd.resetTrip();
-                    showTrip(lastDrive, obd.tripSummary());
+                    showTrip(obd.tripSummary());
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show());
-        selectTripTab(Prefs.getTripTab(this));
     }
 
-    private void selectTripTab(boolean trip) {
-        Prefs.setTripTab(this, trip);
-        tabDrive.setSelected(!trip);
-        tabTrip.setSelected(trip);
-        tripReset.setVisibility(trip ? View.VISIBLE : View.INVISIBLE);
-        showTrip(lastDrive, lastTrip);
-    }
-
-    private void showTrip(TripComputer.Summary drive, TripComputer.Summary trip) {
-        lastDrive = drive;
-        lastTrip = trip;
-        TripComputer.Summary s = tabTrip.isSelected() ? trip : drive;
+    private void showTrip(TripComputer.Summary s) {
         if (s == null) {
             return;
         }
@@ -935,7 +921,7 @@ public class LauncherActivity extends Activity
         Double speed = s.averageSpeedKmh();
         cellAvgSpeed.setValue(speed != null ? String.valueOf(Math.round(speed)) : dash());
         cellFuelUsed.setValue(String.format(IT, "%.2f", s.fuelLiters));
-        // grafico: consumo dell'ultima mezz'ora, con la media della scheda scelta
+        // grafico: consumo dell'ultima mezz'ora, con la media del trip
         chart.setData(lastHistory, avg);
     }
 
@@ -966,7 +952,6 @@ public class LauncherActivity extends Activity
         activityResumed = true;
         obd.setVisible(true);
         applyGaugeScales();
-        applyBorders();
         boolean wantDemo = Prefs.getDemo(this);
         if (wantDemo) { // onPause ferma il timer: si riparte a ogni ritorno nella Home
             startDemo();
@@ -976,7 +961,7 @@ public class LauncherActivity extends Activity
         updateDate();
         fillAppColumn(); // le app scelte possono essere cambiate nelle impostazioni
         lastHistory = obd.consumptionHistory();
-        showTrip(obd.driveSummary(), obd.tripSummary());
+        showTrip(obd.tripSummary());
         // se nelle impostazioni è stato scelto un altro adattatore, ricollegati
         String address = Prefs.getObdAddress(this);
         boolean wasEnabled = obdEnabled;

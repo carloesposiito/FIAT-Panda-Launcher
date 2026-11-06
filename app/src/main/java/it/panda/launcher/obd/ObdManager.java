@@ -58,13 +58,14 @@ public final class ObdManager {
 
     private final Context app;
     private final Handler main = new Handler(Looper.getMainLooper());
-    /** Viaggio corrente: si azzera a ogni nuovo collegamento. */
-    private final TripComputer drive = new TripComputer();
     /** Trip: si azzera solo a mano ed è salvato nelle impostazioni. */
     private final TripComputer trip = new TripComputer();
-    /** Consumo dell'ultima mezz'ora del viaggio corrente, per il grafico. */
+    /** Consumo dell'ultima mezz'ora dall'ultimo collegamento, per il grafico. */
     private final ConsumptionHistory history = new ConsumptionHistory();
     private volatile long lastTripSaveMs;
+    /** Fattore di correzione dei consumi stimati, salvato nelle impostazioni. */
+    private final FuelCalibrator calibrator = new FuelCalibrator();
+    private int calibrationEpoch;
 
     // ultima lettura della diagnostica (scritta solo dal thread OBD)
     private Boolean milOn;
@@ -82,10 +83,8 @@ public final class ObdManager {
     public ObdManager(Context context) {
         this.app = context.getApplicationContext();
         trip.restore(Prefs.getTripState(app));
-    }
-
-    public TripComputer.Summary driveSummary() {
-        return drive.summary();
+        calibrationEpoch = Prefs.getCalibrationEpoch(app);
+        calibrator.restore(Prefs.getCalibrationState(app));
     }
 
     public TripComputer.Summary tripSummary() {
@@ -109,7 +108,27 @@ public final class ObdManager {
 
     private void saveTrip() {
         Prefs.setTripState(app, trip.serialize());
+        saveCalibration(); // stesso ritmo: tiene anche il punto di partenza del calo di livello
         lastTripSaveMs = SystemClock.elapsedRealtime();
+    }
+
+    /** Se la taratura è stata azzerata dalle impostazioni, riparte da zero. */
+    private void syncCalibrationEpoch() {
+        int epoch = Prefs.getCalibrationEpoch(app);
+        if (epoch != calibrationEpoch) {
+            calibrationEpoch = epoch;
+            calibrator.reset();
+        }
+    }
+
+    private boolean calibrationOn() {
+        syncCalibrationEpoch();
+        return Prefs.getFuelCalibration(app);
+    }
+
+    private void saveCalibration() {
+        syncCalibrationEpoch();
+        Prefs.setCalibrationState(app, calibrator.serialize());
     }
 
     public void setListener(Listener l) {
@@ -194,7 +213,6 @@ public final class ObdManager {
                 current = c;
                 Set<Integer> supported = initialize(c);
                 backoff = 2000;
-                drive.reset(); // nuovo collegamento = di solito nuova accensione
                 milOn = null;
                 dtcStored = null;
                 dtcPending = null;
@@ -335,15 +353,24 @@ public final class ObdManager {
         // Consumo: misurato se la centralina lo fornisce, altrimenti ricavato dall'aria aspirata
         // (MAF se c'è, altrimenti stimata dalla pressione nel collettore).
         Double lph = v.get(ObdPid.FUEL_RATE);
+        Double estimatedLph = null; // stima del modello, prima della taratura
         if (lph == null) {
             Double airFlow = v.get(ObdPid.MAF);
+            boolean fromMap = false;
             if (airFlow == null && s.rpm != null && s.intakeKpa != null) {
                 double intake = s.intakeC != null ? s.intakeC : 25.0;
                 airFlow = FuelEstimator.airFlowFromMap(s.rpm, s.intakeKpa, intake,
                         Prefs.getDisplacementCc(app) / 1000.0, FuelEstimator.DEFAULT_VOLUMETRIC_EFFICIENCY);
+                fromMap = true;
             }
             if (airFlow != null) {
                 lph = FuelEstimator.litersPerHour(airFlow);
+                if (fromMap) { // solo la stima dalla pressione si tara: MAF e consumo della centralina sono misure
+                    estimatedLph = lph;
+                    if (calibrationOn()) {
+                        lph = lph * calibrator.factor();
+                    }
+                }
             }
         }
         s.fuelRateLph = lph;
@@ -352,11 +379,13 @@ public final class ObdManager {
         }
         // intervalli troppo lunghi (es. una lettura bloccata) falserebbero i conti: si saltano
         if (seconds > 0 && seconds < 5) {
-            drive.add(lph, s.speedKmh, seconds);
             trip.add(lph, s.speedKmh, seconds);
             history.add(lph, s.speedKmh, seconds);
+            if (estimatedLph != null && calibrationOn()
+                    && calibrator.add(s.fuelLevelPct, estimatedLph * seconds / 3600.0, seconds, Prefs.getTankLiters(app))) {
+                saveCalibration();
+            }
         }
-        s.drive = drive.summary();
         s.trip = trip.summary();
         s.history = history.points();
         return s;
