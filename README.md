@@ -1,128 +1,132 @@
 # Panda Launcher
 
-**Un cruscotto digitale su misura per una Fiat Panda 169, costruito da zero come launcher Android per un'autoradio cinese.**
+[🇮🇹 Italiano](README.it.md) · 🇬🇧 English
 
-La radio di serie mostra icone e un'app per la musica. Questo progetto la trasforma in un cruscotto: tachimetro e contagiri
-disegnati a mano, dati veri letti dalla centralina, indicazioni di Google Maps direttamente nella Home, la frequenza
-della radio, la diagnosi degli errori motore. Tutto in Java, senza librerie di terzi per l'interfaccia, pensato per leggersi
-con un'occhiata mentre si guida.
+**A custom digital dashboard for a Fiat Panda 169, built from scratch as an Android launcher for a Chinese car head unit.**
 
-![Home con le indicazioni di navigazione](Extra/Immagini/Screenshots/home-navigatore.png)
+The stock head unit shows a grid of icons and a music app. This project turns it into an instrument cluster: hand-drawn speedometer
+and tachometer, real data read from the engine ECU, Google Maps turn-by-turn right on the home screen, the radio frequency,
+and engine fault diagnosis. Everything is written in Java with no third-party UI libraries, and designed to be read
+at a glance while driving.
 
-## Cosa fa
+![Home screen with navigation](Extra/Immagini/Screenshots/home-navigatore.png)
 
-### Home: velocità, giri e viaggio in tre colonne
+## What it does
 
-- **Tachimetro** disegnato in codice (`GaugeView`): quadrante scuro con sfumatura, arco di 240°, tacche e numeri, fondo scala configurabile.
-- **Giri motore** in migliaia, con una barra a segmenti che si riempie fino ai giri di cambio marcia (da impostare).
-  Una freccia grigia lampeggia verso l'alto quando conviene salire di marcia e verso il basso quando si sta in marcia sotto i giri minimi.
-- **Auto vista dall'alto** al centro, con il livello del serbatoio.
-- **Computer di bordo**: distanza, tempo, percentuale e litri di carburante consumati, e (opzionale) velocità media e costo in euro.
-  Sotto, un grafico della velocità nell'ultima mezz'ora, con la media.
-- **Sezione "Dati aggiuntivi" sopra il tachimetro**, a scelta tra *Disattivato*, *Navigatore* e *Radio*:
+### Home: speed, revs and trip in three columns
 
-| Navigatore (goESP) | Radio |
+- **Speedometer** drawn entirely in code (`GaugeView`): dark dial with a gradient, 240° arc, ticks and numbers, configurable full scale.
+- **Engine revs** in thousands, with a segmented bar that fills up to the shift point (configurable).
+  A grey arrow blinks upward when it is time to shift up, and downward when you are driving below the minimum revs.
+- **Top-down car image** in the middle, with the fuel level.
+- **Trip computer**: distance, time, fuel used as a percentage and in litres, and (optionally) average speed and cost in euro.
+  Below, a speed chart for the last half hour, with the average.
+- **"Extra data" section above the speedometer**, set to *Off*, *Navigation* or *Radio*:
+
+| Navigation (goESP) | Radio |
 |---|---|
-| ![Navigatore](Extra/Immagini/Screenshots/home-navigatore.png) | ![Radio](Extra/Immagini/Screenshots/home-radio.png) |
+| ![Navigation](Extra/Immagini/Screenshots/home-navigatore.png) | ![Radio](Extra/Immagini/Screenshots/home-radio.png) |
 
-  - **Navigatore**: freccia della manovra, distanza, via, tempo e orario di arrivo. I dati arrivano dall'app **goESP** sul telefono,
-    che il launcher imita come se fosse il suo display.
-  - **Radio**: la frequenza (titolo e descrizione) letta dalla notifica dell'app radio dell'autoradio.
+  - **Navigation**: manoeuvre arrow, distance, street name, remaining time and arrival time. The data comes from the **goESP** app
+    on the phone, which the launcher impersonates as if it were its display.
+  - **Radio**: the frequency (notification title and text) read from the head unit's radio app notification.
 
-### Seconda pagina: l'auto e i suoi dati
+### Second page: the car and its data
 
-L'auto è al centro, con i dati sopra e sotto collegati da linee ai punti della carrozzeria. A destra, in una colonna stretta
-perché spesso è vuota, gli errori letti dalla centralina.
+The car sits in the middle, with data above and below connected by lines to points on the bodywork. On the right, in a narrow column
+because it is usually empty, the fault codes read from the ECU.
 
-![Dati dell'auto ed errori](Extra/Immagini/Screenshots/auto-dati-errori.png)
+![Car data and faults](Extra/Immagini/Screenshots/auto-dati-errori.png)
 
-- **Misurati**: temperatura acqua, tensione batteria (con l'icona della carica dell'alternatore), livello serbatoio,
-  temperatura dell'aria aspirata, carico motore, posizione dell'acceleratore.
-- **Stimati**: carburante residuo in litri e autonomia, calcolata dal consumo medio del viaggio.
-- **Errori**: pulsante *Leggi allarmi* e lista con spia motore, codici di errore memorizzati e in attesa, e avvisi ricavati dai valori
-  (acqua troppo calda, batteria che non carica). I codici sono tradotti in italiano.
+- **Measured**: coolant temperature, battery voltage (with a charging icon when the alternator is working), fuel level,
+  intake air temperature, engine load, throttle position.
+- **Estimated**: remaining fuel in litres and driving range, computed from the average consumption of the trip.
+- **Faults**: a *Read alarms* button and a list with the check-engine light, stored and pending fault codes, and warnings derived
+  from live values (coolant too hot, battery not charging). Fault codes are described in Italian.
 
-### Il resto
+### The rest
 
-- Colonna delle app scelte, con impostazioni e tasti del volume.
-- Icone, scritte e riquadri semitrasparenti pensati per essere leggibili da un posto di guida, su uno schermo scuro.
-- Modalità dimostrativa con dati finti per provare tutta la grafica senza auto né adattatore.
+- Column of pinned apps, with settings and volume buttons.
+- Icons, text and translucent boxes designed to be legible from the driver's seat on a dark screen.
+- Demo mode with fake data to try the whole interface without a car or an adapter.
 
-## Sotto il cofano
+The app interface is in Italian.
 
-**OBD senza strumenti da officina.** Un adattatore ELM327 economico parla con la centralina via Bluetooth (RFCOMM).
-Il launcher chiede i PID standard uno alla volta (la centralina del Fire risponde in circa 280 ms a richiesta),
-li interpreta e ne ricava un'istantanea dei dati. La lettura continua anche quando si usa un'altra app.
+## Under the hood
 
-**Un consumo che nessuno ti dà, stimato bene.** Il motore Fire non comunica il consumo e di solito nemmeno il flusso d'aria.
-`FuelEstimator` lo ricostruisce con il metodo *speed-density*: dalla pressione nel collettore, dai giri, dalla temperatura dell'aria
-e dalla cilindrata ricava l'aria aspirata, e da quella la benzina (rapporto stechiometrico 14,7).
-`FuelCalibrator` poi **si tara da solo**: confronta i litri stimati con il calo reale del livello del serbatoio
-e corregge il modello con un fattore che si aggiorna piano, ignorando rumore e rifornimenti.
-Da qui escono anche costo del viaggio e autonomia.
+**OBD without garage tools.** A cheap ELM327 adapter talks to the ECU over Bluetooth (RFCOMM).
+The launcher requests the standard PIDs one at a time (the Fire engine ECU answers in about 280 ms per request),
+parses them and builds a snapshot of the data. Reading continues while another app is in the foreground.
 
-**Un display che il telefono crede vero.** Per la navigazione il launcher si comporta come un display goESP (basato su ESP32):
-pubblica via Bluetooth Low Energy lo stesso servizio GATT e il telefono vi scrive i pacchetti di manovra.
-Nessun server, nessun cloud, nessuna app da modificare.
+**A consumption figure nobody gives you, estimated well.** The Fire engine does not report fuel consumption and usually not even air flow.
+`FuelEstimator` rebuilds it with the *speed-density* method: from manifold pressure, revs, intake air temperature
+and engine displacement it computes the air mass, and from that the fuel (stoichiometric ratio 14.7).
+`FuelCalibrator` then **calibrates itself**: it compares the estimated litres with the real drop of the fuel tank level
+and corrects the model with a factor that updates slowly, ignoring noise and refuelling.
+Trip cost and driving range come out of it too.
 
-**La radio, senza toccare la radio.** Un `NotificationListenerService` legge la notifica di riproduzione dell'app radio
-(categoria *transport* o stile multimediale) e ne mostra titolo e descrizione.
+**A display the phone believes is real.** For navigation the launcher behaves like a goESP display (ESP32-based):
+it advertises the same GATT service over Bluetooth Low Energy and the phone writes the manoeuvre packets to it.
+No server, no cloud, no app to modify.
 
-**Grafica disegnata a mano.** Tachimetro, barra dei giri, grafico della velocità e linee dall'auto sono `View` personalizzate
-disegnate su `Canvas`: le linee seguono i punti della foto qualunque sia la dimensione dello schermo.
+**The radio, without touching the radio.** A `NotificationListenerService` reads the playback notification of the radio app
+(*transport* category or media style) and shows its title and text.
 
-**Diagnosi.** Decodifica dei codici di errore OBD-II (modi 03 e 07) con un catalogo in italiano, e regole che trasformano
-i valori letti in avvisi.
+**Hand-drawn graphics.** Speedometer, rev bar, speed chart and the lines from the car are custom `View`s drawn on a `Canvas`:
+the lines follow the points on the photo whatever the screen size.
 
-**Testato.** Le parti senza dipendenze Android (parser OBD, stime di consumo, taratura, trip, diagnosi, storico velocità)
-sono classi pure con test JUnit.
+**Diagnostics.** OBD-II fault code decoding (modes 03 and 07) with a catalogue in Italian, and rules that turn
+live values into warnings.
 
-## Struttura
+**Tested.** The parts with no Android dependencies (OBD parser, consumption estimates, calibration, trip, diagnostics, speed history)
+are plain classes with JUnit tests.
+
+## Project layout
 
 ```
 FPLauncher/
   app/src/main/
     java/it/panda/launcher/
-      LauncherActivity.java      Home e seconda pagina, tutta la logica dello schermo
-      SettingsActivity.java      app, OBD, dati aggiuntivi, modello, tachimetro, consumi
-      AppPickerActivity.java     scelta e ordine delle app della colonna
-      Prefs.java                 impostazioni salvate
-      obd/                       ELM327, PID, parser, stime di consumo, taratura, trip, diagnosi
-      nav/                       ricevitore goESP via Bluetooth LE e dati di navigazione
-      radio/                     lettura della notifica dell'app radio
-      apps/                      elenco delle app installate
-      ui/                        GaugeView, ShiftLightsView, CarLinesView, MetricCellView, grafico
-    assets/directions/           frecce delle manovre
-  app/src/test/                  test JUnit
+      LauncherActivity.java      home and second page, all the screen logic
+      SettingsActivity.java      apps, OBD, extra data, model, speedometer, consumption
+      AppPickerActivity.java     choice and order of the pinned apps
+      Prefs.java                 saved settings
+      obd/                       ELM327, PIDs, parser, consumption estimate, calibration, trip, diagnostics
+      nav/                       goESP receiver over Bluetooth LE and navigation data
+      radio/                     reading the radio app notification
+      apps/                      list of installed apps
+      ui/                        GaugeView, ShiftLightsView, CarLinesView, MetricCellView, chart
+    assets/directions/           manoeuvre arrows
+  app/src/test/                  JUnit tests
 Extra/
-  APK/                           APK compilata
-  Immagini/                      foto dell'auto e screenshot
+  APK/                           compiled APK
+  Immagini/                      car photos and screenshots
 ```
 
-## Compilare e installare
+## Build and install
 
-Servono JDK 17 o superiore e Android SDK (minSdk 24, targetSdk 34).
+You need JDK 17 or later and the Android SDK (minSdk 24, targetSdk 34).
 
-1. Apri la cartella `FPLauncher` in Android Studio, oppure da riga di comando:
+1. Open the `FPLauncher` folder in Android Studio, or from the command line:
    `gradle :app:assembleDebug :app:testDebugUnitTest`
-2. L'APK è in `FPLauncher/app/build/outputs/apk/debug/app-debug.apk`; una copia pronta è in `Extra/APK/PandaLauncher.apk`.
-3. Installala sull'autoradio (USB con debug attivo, oppure da chiavetta).
-4. Premi Home e scegli **Panda Launcher** → "Sempre". Il launcher originale resta installato e si può riattivare.
+2. The APK is at `FPLauncher/app/build/outputs/apk/debug/app-debug.apk`; a ready-made copy is in `Extra/APK/PandaLauncher.apk`.
+3. Install it on the head unit (USB with debugging enabled, or from a USB stick).
+4. Press Home and choose **Panda Launcher** → "Always". The original launcher stays installed and can be re-enabled.
 
-## Impostazioni
+## Settings
 
-Dalla Home, ingranaggio in basso a sinistra:
+From the home screen, gear icon at the bottom left:
 
-![Impostazioni](Extra/Immagini/Screenshots/impostazioni-2.png)
+![Settings](Extra/Immagini/Screenshots/impostazioni-2.png)
 
-- **OBD**: attivazione e scelta dell'adattatore ELM327 già associato dalle impostazioni Bluetooth di Android (PIN di solito `1234` o `0000`).
-- **Dati aggiuntivi**: Disattivato, Navigatore (goESP) o Radio. Per la radio serve l'accesso alle notifiche, che si concede dalle impostazioni di sistema.
-- **Modello**: Fiat Panda 169 AXF1A 08B, 1242 cm³ (altri modelli si aggiungono in `Prefs`).
-- **Tachimetro e giri**: fondo scala (160 km/h di default), giri per cambiare marcia (6000), giri minimi (1500), giri massimi (6500).
-- **Consumi**: taratura automatica, capacità del serbatoio (38 l), consumo dettagliato con velocità media e costo, prezzo del carburante (1,90 €/l).
+- **OBD**: enable it and choose the ELM327 adapter already paired in Android's Bluetooth settings (PIN usually `1234` or `0000`).
+- **Extra data** ("Dati aggiuntivi"): Off, Navigation (goESP) or Radio. Radio needs notification access, granted from the system settings.
+- **Model**: Fiat Panda 169 AXF1A 08B, 1242 cm³ (other models are added in `Prefs`).
+- **Speedometer and revs**: full scale (160 km/h by default), shift revs (6000), minimum revs (1500), maximum revs (6500).
+- **Consumption**: automatic calibration, tank capacity (38 l), detailed consumption with average speed and cost, fuel price (€1.90/l).
 
-## Stato
+## Status
 
-Progetto personale in uso e in sviluppo. L'interfaccia, la lettura OBD e le stime sono provate; la navigazione via goESP e la lettura
-della radio dipendono dall'hardware dell'autoradio (Bluetooth LE in modalità periferica, app radio che pubblica una notifica di riproduzione).
-Porte, finestrini e climatizzatore non fanno parte dell'OBD standard e richiederebbero i comandi Fiat del Body Computer.
+A personal project, in use and under development. The interface, OBD reading and estimates are tested; goESP navigation and radio reading
+depend on the head unit hardware (Bluetooth LE peripheral mode, a radio app that publishes a playback notification).
+Doors, windows and air conditioning are not part of standard OBD and would need the Fiat Body Computer commands.
