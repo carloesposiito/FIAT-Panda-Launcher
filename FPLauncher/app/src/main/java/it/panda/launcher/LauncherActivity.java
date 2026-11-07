@@ -48,7 +48,6 @@ import it.panda.launcher.obd.TripComputer;
 import it.panda.launcher.ui.ConsumptionChartView;
 import it.panda.launcher.ui.Fonts;
 import it.panda.launcher.ui.GaugeView;
-import it.panda.launcher.ui.GearShiftView;
 import it.panda.launcher.ui.MetricCellView;
 
 /**
@@ -73,7 +72,7 @@ public class LauncherActivity extends Activity
 
     // pagine
     private static final int HINT_NONE = 0, HINT_UP = 1, HINT_DOWN = 2;
-    private static final int PAGE_CAR = 0, PAGE_CAR_GEARS = 1, PAGE_TRIP = 2, PAGE_NAV = 3, PAGE_ALERTS = 4;
+    private static final int PAGE_CAR = 0, PAGE_CAR_DATA = 1;
     private View[] pages;
     private int page;
     private GestureDetector swipe;
@@ -87,13 +86,15 @@ public class LauncherActivity extends Activity
 
     // navigazione (goESP)
     private NavReceiver nav;
-    private View navActive, navIdle;
-    private ImageView navArrow;
-    private TextView navDistance, navDirection, navIdleTitle, navIdleText;
-    private MetricCellView navArrival, navRemaining, navTime;
-    private NavReceiver.State navState = NavReceiver.State.OFF;
-    private String navDevice;
-    private String navArrowShown;
+    // sezione di navigazione sulla Home, sopra il tachimetro
+    private View homeExtraBlock, homeNavBlock, homeRadioBlock;
+    private ImageView homeRadioArt;
+    private TextView homeRadioTitle, homeRadioText;
+    private it.panda.launcher.radio.RadioWatcher radio;
+    private ImageView homeNavArrow;
+    private TextView homeNavDistance, homeNavText;
+    private String homeNavArrowShown;
+    private MetricCellView homeNavTime, homeNavArrival;
 
     // dati ai lati della foto dell'auto
 
@@ -106,7 +107,6 @@ public class LauncherActivity extends Activity
     private boolean pausedOnce;
     private CarPage[] carPages;
     private int shiftRpm = 6000, redRpm = 6500, minRpm = 1500;
-    private boolean shiftLightsOn = true;
 
     // avvisi
     private Button alertsRead;
@@ -116,8 +116,8 @@ public class LauncherActivity extends Activity
     private boolean obdConnected;
 
     // consumi
-    private TripCells[] tripCells;
-    private List<Double> lastHistory, lastSpeedHistory;
+    private TripCells tripCells;
+    private List<Double> lastSpeedHistory;
 
     /** Aggiorna la colonna quando si installa o si disinstalla un'app. */
     private final BroadcastReceiver packageReceiver = new BroadcastReceiver() {
@@ -308,8 +308,7 @@ public class LauncherActivity extends Activity
     // ================================================================ pagine
 
     private void setupPages() {
-        pages = new View[]{findViewById(R.id.page_car), findViewById(R.id.page_car_gears), findViewById(R.id.page_trip),
-                findViewById(R.id.page_nav), findViewById(R.id.page_alerts)};
+        pages = new View[]{findViewById(R.id.page_car), findViewById(R.id.page_car_gears)};
         pageDots = findViewById(R.id.page_dots);
         float density = getResources().getDisplayMetrics().density;
         for (int i = 0; i < pages.length; i++) {
@@ -346,21 +345,9 @@ public class LauncherActivity extends Activity
         applyAvailability();
     }
 
-    /** Pagine disponibili: tutte, tranne la navigazione se spenta. */
-    private boolean isAvailable(int p) {
-        return p != PAGE_NAV || navEnabled;
-    }
-
-    /** Pagina disponibile successiva (dir = 1) o precedente (dir = -1), girando in tondo. */
+    /** Pagina successiva (dir = 1) o precedente (dir = -1), girando in tondo. */
     private int step(int dir) {
-        int p = page;
-        for (int i = 0; i < pages.length; i++) {
-            p = (p + dir + pages.length) % pages.length;
-            if (isAvailable(p)) {
-                return p;
-            }
-        }
-        return page;
+        return (page + dir + pages.length) % pages.length;
     }
 
     /**
@@ -371,28 +358,15 @@ public class LauncherActivity extends Activity
     private void applyAvailability() {
         obdEnabled = Prefs.getObdEnabled(this);
         navEnabled = Prefs.getNavEnabled(this);
-        int available = 0;
-        for (int i = 0; i < pages.length; i++) {
-            boolean on = isAvailable(i);
-            pageDots.getChildAt(i).setVisibility(on ? View.VISIBLE : View.GONE);
-            available += on ? 1 : 0;
-        }
-        pageDots.setVisibility(available > 1 ? View.VISIBLE : View.GONE);
-        for (CarPage p : carPages) {
-            p.carDataRow.setVisibility(Prefs.getCarData(this) ? View.VISIBLE : View.GONE); // con i separatori
-        }
+        int extra = Prefs.getExtraData(this); // la sezione sopra il tachimetro: navigazione o radio
+        boolean radioEnabled = extra == Prefs.EXTRA_RADIO;
+        homeExtraBlock.setVisibility(extra == Prefs.EXTRA_OFF ? View.GONE : View.VISIBLE);
+        homeNavBlock.setVisibility(navEnabled ? View.VISIBLE : View.GONE);
+        homeRadioBlock.setVisibility(radioEnabled ? View.VISIBLE : View.GONE);
         if (!obdEnabled && !demo) {
             showNoLiveData();
         }
 
-        int saved = Math.max(0, Math.min(pages.length - 1, Prefs.getPage(this)));
-        int wanted = isAvailable(saved) ? saved : PAGE_CAR;
-        if (wanted != page) {
-            for (int i = 0; i < pages.length; i++) {
-                pages[i].setVisibility(i == wanted ? View.VISIBLE : View.INVISIBLE);
-            }
-            page = wanted;
-        }
         updatePageDots();
 
         if (obd != null) { // il consumo dettagliato si accende e spegne dalle impostazioni
@@ -404,6 +378,11 @@ public class LauncherActivity extends Activity
             nav.start();
         } else {
             nav.stop();
+        }
+        if (radioEnabled && !demo) {
+            radio.start();
+        } else {
+            radio.stop();
         }
     }
 
@@ -441,24 +420,24 @@ public class LauncherActivity extends Activity
     // ================================================================ navigazione (goESP)
 
     private void setupNav() {
-        navActive = findViewById(R.id.nav_active);
-        navIdle = findViewById(R.id.nav_idle);
-        navArrow = findViewById(R.id.nav_arrow);
-        navDistance = findViewById(R.id.nav_distance);
-        navDirection = findViewById(R.id.nav_direction);
-        navIdleTitle = findViewById(R.id.nav_idle_title);
-        navIdleText = findViewById(R.id.nav_idle_text);
-        navArrival = findViewById(R.id.nav_cell_arrival);
-        navRemaining = findViewById(R.id.nav_cell_distance);
-        navTime = findViewById(R.id.nav_cell_time);
+        homeExtraBlock = findViewById(R.id.home_extra_block);
+        homeNavBlock = findViewById(R.id.home_nav_block);
+        homeRadioBlock = findViewById(R.id.home_radio_block);
+        homeRadioArt = findViewById(R.id.home_radio_art);
+        homeRadioTitle = findViewById(R.id.home_radio_title);
+        homeRadioText = findViewById(R.id.home_radio_text);
+        radio = new it.panda.launcher.radio.RadioWatcher(this, this::showRadio);
+        homeNavArrow = findViewById(R.id.home_nav_arrow);
+        homeNavDistance = findViewById(R.id.home_nav_distance);
+        homeNavText = findViewById(R.id.home_nav_text);
+        homeNavTime = findViewById(R.id.home_nav_time);
+        homeNavArrival = findViewById(R.id.home_nav_arrival);
         nav = NavReceiver.get(this);
         nav.setListener(this);
     }
 
     @Override
     public void onNavState(NavReceiver.State state, String deviceName) {
-        navState = state;
-        navDevice = deviceName;
         onNavData(nav.last());
     }
 
@@ -469,49 +448,43 @@ public class LauncherActivity extends Activity
         }
     }
 
+    /** Sezione di navigazione sopra il tachimetro della Home: freccia, distanza e testo; senza indicazione, stato del collegamento. */
     private void showNav(NavData d) {
-        if (d == null) {
-            navActive.setVisibility(View.GONE);
-            navIdle.setVisibility(View.VISIBLE);
-            navArrowShown = null;
-            int text;
-            switch (navState) {
-                case CONNECTED:
-                    text = R.string.nav_idle_waiting;
-                    break;
-                case UNSUPPORTED:
-                    text = R.string.nav_unsupported;
-                    break;
-                case BT_OFF:
-                case NO_BLUETOOTH:
-                    text = R.string.nav_bt_off;
-                    break;
-                case NO_PERMISSION:
-                    text = R.string.nav_no_permission;
-                    break;
-                case ERROR:
-                    text = R.string.nav_error;
-                    break;
-                default:
-                    text = R.string.nav_idle_off;
-                    break;
-            }
-            navIdleTitle.setText(navState == NavReceiver.State.CONNECTED && navDevice != null
-                    ? getString(R.string.nav_connected, navDevice) : getString(R.string.nav_idle_title));
-            navIdleText.setText(text);
+        if (homeNavBlock == null) {
             return;
         }
-        navIdle.setVisibility(View.GONE);
-        navActive.setVisibility(View.VISIBLE);
-        if (!d.image.equals(navArrowShown)) {
-            navArrowShown = d.image;
-            navArrow.setImageBitmap(loadArrow(d.image));
+        if (d == null) {
+            homeNavArrowShown = null;
+            homeNavArrow.setImageResource(R.drawable.ic_navigation);
+            homeNavArrow.setAlpha(0.35f);
+            homeNavDistance.setText(dash());
+            homeNavText.setText(R.string.nav_idle_title);
+            homeNavTime.setValue(dash());
+            homeNavArrival.setValue(dash());
+            return;
         }
-        navDistance.setText(d.distanceText());
-        navDirection.setText(d.direction);
-        navArrival.setValue(d.arrival.isEmpty() ? dash() : d.arrival);
-        navRemaining.setValue(d.remainingDistance.isEmpty() ? dash() : d.remainingDistance);
-        navTime.setValue(d.remainingTime.isEmpty() ? dash() : d.remainingTime);
+        homeNavArrow.setAlpha(1f);
+        if (!d.image.equals(homeNavArrowShown)) {
+            homeNavArrowShown = d.image;
+            homeNavArrow.setImageBitmap(loadArrow(d.image));
+        }
+        homeNavDistance.setText(d.distanceText());
+        homeNavText.setText(d.direction);
+        homeNavTime.setValue(d.remainingTime.isEmpty() ? dash() : d.remainingTime);
+        homeNavArrival.setValue(d.arrival.isEmpty() ? dash() : d.arrival);
+    }
+
+    /** Sezione radio: frequenza dalla notifica dell'app radio, oppure il segnaposto se non c'è nulla da mostrare. */
+    private void showRadio(it.panda.launcher.radio.RadioWatcher.Info info, boolean hasAccess) {
+        if (info == null) {
+            homeRadioArt.setAlpha(0.35f);
+            homeRadioTitle.setText(hasAccess ? R.string.radio_idle : R.string.radio_title_no_access);
+            homeRadioText.setText(hasAccess ? R.string.radio_idle_text : R.string.radio_no_access);
+            return;
+        }
+        homeRadioArt.setAlpha(0.6f);
+        homeRadioTitle.setText(info.title);
+        homeRadioText.setText(info.subtitle);
     }
 
     /** Freccia dalle immagini di goESP (assets/directions); se sconosciuta, la freccia "dritto". */
@@ -536,7 +509,6 @@ public class LauncherActivity extends Activity
         date.setTypeface(Fonts.display(this));
         clock = findViewById(R.id.clock);
         clock.setTypeface(Fonts.display(this));
-        shiftLights = findViewById(R.id.shift_lights);
         IntentFilter f = new IntentFilter();
         f.addAction(Intent.ACTION_TIME_TICK);
         f.addAction(Intent.ACTION_TIME_CHANGED);
@@ -547,7 +519,6 @@ public class LauncherActivity extends Activity
     }
 
     private TextView clock;
-    private it.panda.launcher.ui.ShiftLightsView shiftLights;
 
     private void updateDate() {
         // ora con i due punti in rosso racing
@@ -569,6 +540,19 @@ public class LauncherActivity extends Activity
         carPages = new CarPage[]{
                 new CarPage(findViewById(R.id.page_car)),
                 new CarPage(findViewById(R.id.page_car_gears))};
+
+        // le linee dalle caselle della seconda pagina ai punti della carrozzeria (frazioni della foto)
+        View dataPage = findViewById(R.id.page_car_gears);
+        it.panda.launcher.ui.CarLinesView lines = dataPage.findViewById(R.id.car_lines);
+        lines.setImage(dataPage.findViewById(R.id.car_image_data));
+        lines.link(dataPage.findViewById(R.id.cell_coolant), 0.22f, 0.42f);
+        lines.link(dataPage.findViewById(R.id.cell_battery), 0.36f, 0.36f);
+        lines.link(dataPage.findViewById(R.id.cell_intake), 0.48f, 0.34f);
+        lines.link(dataPage.findViewById(R.id.cell_load), 0.60f, 0.30f);
+        lines.link(dataPage.findViewById(R.id.cell_throttle), 0.30f, 0.80f);
+        lines.link(dataPage.findViewById(R.id.cell_fuel), 0.72f, 0.62f);
+        lines.link(dataPage.findViewById(R.id.cell_fuel_left), 0.82f, 0.66f);
+        lines.link(dataPage.findViewById(R.id.cell_range), 0.90f, 0.70f);
 
         alertsRead = findViewById(R.id.alerts_read);
         alertsRead.setOnClickListener(v -> {
@@ -615,9 +599,6 @@ public class LauncherActivity extends Activity
         for (CarPage p : carPages) {
             p.show(s);
         }
-        // luci di cambio marcia: si accendono da 2500 giri fino al massimo
-        shiftLights.setFraction(s.rpm == null || !shiftLightsOn ? 0f : (float) ((s.rpm - 2500.0) / Math.max(1, redRpm - 2500)));
-        lastHistory = s.history;
         lastSpeedHistory = s.speedHistory;
         showTrip(s.trip);
 
@@ -638,10 +619,8 @@ public class LauncherActivity extends Activity
     private final class CarPage {
         final boolean rpmMode;
         final GaugeView speedGauge;
-        final View carDataRow;
-        final GearShiftView gearShift;
-        final ImageView shiftArrow;
         final MetricCellView coolant, battery, fuel;
+        final MetricCellView intake, load, throttle, fuelLeft, range;
         final MetricCellView rpmCell;
         final ImageView rpmArrow;
         final it.panda.launcher.ui.ShiftLightsView rpmBar;
@@ -649,11 +628,10 @@ public class LauncherActivity extends Activity
         private int shownHint = -1;
 
         CarPage(View root) {
-            speedGauge = root.findViewById(R.id.speed_gauge);
-            speedGauge.setUnit(getString(R.string.unit_kmh));
-            carDataRow = root.findViewById(R.id.car_data_row);
-            gearShift = root.findViewById(R.id.gear_shift);
-            shiftArrow = root.findViewById(R.id.shift_arrow);
+            speedGauge = root.findViewById(R.id.speed_gauge); // solo nella Home
+            if (speedGauge != null) {
+                speedGauge.setUnit(getString(R.string.unit_kmh));
+            }
             rpmCell = root.findViewById(R.id.cell_rpm);
             rpmArrow = root.findViewById(R.id.rpm_shift_arrow);
             rpmBar = root.findViewById(R.id.rpm_bar);
@@ -664,25 +642,17 @@ public class LauncherActivity extends Activity
             coolant = root.findViewById(R.id.cell_coolant);
             battery = root.findViewById(R.id.cell_battery);
             fuel = root.findViewById(R.id.cell_fuel);
-            if (gearShift != null) {
-                // la freccia sta nel posto vuoto dello schema, alla stessa altezza della 4ª (centro in 74/88, 58/72)
-                gearShift.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
-                    android.widget.FrameLayout.LayoutParams lp = (android.widget.FrameLayout.LayoutParams) shiftArrow.getLayoutParams();
-                    int x = Math.round(gearShift.getWidth() * 74f / 88f - lp.width / 2f);
-                    int y = Math.round(gearShift.getHeight() * 58f / 72f - lp.height / 2f);
-                    if (lp.leftMargin != x || lp.topMargin != y) {
-                        lp.leftMargin = x;
-                        lp.topMargin = y;
-                        shiftArrow.setLayoutParams(lp);
-                    }
-                });
-            }
+            intake = root.findViewById(R.id.cell_intake);
+            load = root.findViewById(R.id.cell_load);
+            throttle = root.findViewById(R.id.cell_throttle);
+            fuelLeft = root.findViewById(R.id.cell_fuel_left);
+            range = root.findViewById(R.id.cell_range);
             clear();
         }
 
         void show(ObdSnapshot s) {
-            speedGauge.setValue(s.speedKmh);
             if (rpmMode) {
+                speedGauge.setValue(s.speedKmh);
                 rpmCell.setValue(s.rpm != null ? oneDecimal(s.rpm / 1000.0) : dash()); // migliaia di giri, come sui contagiri veri
                 rpmBar.setFraction(s.rpm == null ? 0f : (float) (s.rpm / Math.max(1, shiftRpm)));
                 // scalare solo in marcia: al minimo da fermi i giri sono bassi per natura
@@ -690,16 +660,6 @@ public class LauncherActivity extends Activity
                 setHint(s.rpm == null ? HINT_NONE
                         : s.rpm >= shiftRpm ? HINT_UP
                         : moving && s.rpm > 400 && s.rpm < minRpm ? HINT_DOWN : HINT_NONE);
-            } else {
-                // la marcia si legge sullo schema della leva (folle = barra centrale accesa)
-                gearShift.setGear(s.gear == null || s.gear < 0 ? null : s.gear);
-                // freccia: giri oltre la soglia scelta e una marcia più alta da inserire (non in folle, non in quinta);
-                // oltre il massimo è rossa e compare comunque
-                boolean canShiftUp = s.gear == null || s.gear < 0 || (s.gear >= 1 && s.gear < 5);
-                boolean over = s.rpm != null && s.rpm >= redRpm;
-                boolean shift = s.rpm != null && s.rpm >= shiftRpm && canShiftUp;
-                shiftArrow.setColorFilter(getColor(over ? R.color.crit : R.color.accent));
-                shiftArrow.setVisibility(shift || over ? View.VISIBLE : View.GONE);
             }
 
             // dati auto: icona colorata e riempita in base al valore
@@ -732,6 +692,36 @@ public class LauncherActivity extends Activity
                         (float) (s.fuelLevelPct / 100.0));
             } else {
                 fuel.clear();
+            }
+            if (intake != null) { // dati misurati e stime della seconda pagina
+                setPlain(intake, s.intakeC);
+                setPlain(load, s.loadPct);
+                setPlain(throttle, s.throttlePct);
+                Double left = s.fuelLevelPct != null ? s.fuelLevelPct / 100.0 * Prefs.getTankLiters(LauncherActivity.this) : null;
+                if (left != null) {
+                    fuelLeft.setValue(oneDecimal(left));
+                    fuelLeft.setStatus(getColor(s.fuelLevelPct < 10 ? R.color.crit : s.fuelLevelPct < 20 ? R.color.accent : R.color.ok),
+                            (float) (s.fuelLevelPct / 100.0));
+                } else {
+                    fuelLeft.clear();
+                }
+                // autonomia: carburante residuo diviso il consumo medio del trip (serve qualche km percorso)
+                Double avg = s.trip != null ? s.trip.averageL100() : null;
+                if (left != null && avg != null && avg > 0) {
+                    range.setValue(String.valueOf(Math.round(left / avg * 100.0)));
+                    range.setStatus(getColor(R.color.text), 1f);
+                } else {
+                    range.clear();
+                }
+            }
+        }
+
+        private void setPlain(MetricCellView cell, Double v) {
+            if (v != null) {
+                cell.setValue(String.valueOf(Math.round(v)));
+                cell.setStatus(getColor(R.color.text), 1f); // icona chiara: il dato c'è
+            } else {
+                cell.clear();
             }
         }
 
@@ -767,18 +757,20 @@ public class LauncherActivity extends Activity
         }
         /** Senza dati: trattini e barra spenta. */
         void clear() {
-            speedGauge.setValue(null);
             if (rpmMode) {
+                speedGauge.setValue(null);
                 rpmCell.clear();
                 rpmBar.setFraction(0f);
                 setHint(HINT_NONE);
-            } else {
-                gearShift.setGear(null);
-                shiftArrow.setVisibility(View.GONE);
             }
             if (coolant != null) {
                 coolant.clear();
                 battery.clear();
+                intake.clear();
+                load.clear();
+                throttle.clear();
+                fuelLeft.clear();
+                range.clear();
             }
             fuel.clear();
         }
@@ -792,6 +784,7 @@ public class LauncherActivity extends Activity
             double t = (SystemClock.elapsedRealtime() - demoStartMs) / 1000.0;
             showSnapshot(demoSnapshot(t, demoFaults));
             showNav(demoNav(t));
+            showRadio(new it.panda.launcher.radio.RadioWatcher.Info("FM 98,5 MHz", "Radio Deejay"), true);
             demoHandler.postDelayed(this, 500);
         }
     };
@@ -827,11 +820,12 @@ public class LauncherActivity extends Activity
         double wave = 0.5 + 0.5 * Math.sin(t / 6);
         s.speedKmh = 150 * wave;
         s.rpm = 800 + 5400 * wave;
-        s.gear = s.speedKmh < 5 ? 0 : (int) Math.min(5, 1 + s.speedKmh / 32);
         s.coolantC = 95 + 10 * Math.sin(t / 9);
         s.batteryV = 14.0 + 0.4 * Math.sin(t / 5);
         s.fuelLevelPct = 100 - (t % 100);
         s.loadPct = 20 + 60 * wave;
+        s.throttlePct = 10 + 50 * wave;
+        s.intakeC = 30 + 8 * wave;
         s.milOn = faults;
         s.diagReads = 1;
         s.dtcStored = new ArrayList<>();
@@ -850,11 +844,6 @@ public class LauncherActivity extends Activity
             double tt = t - (180 - i) * 10;
             double w = 0.5 + 0.5 * Math.sin(tt / 70) * Math.cos(tt / 230);
             s.speedHistory.add(Math.max(0, 130 * w - 15));
-        }
-        s.history = new ArrayList<>();
-        for (int i = 0; i < 120; i++) {
-            double w = 0.5 + 0.5 * Math.sin((t - (120 - i) * 3) / 6);
-            s.history.add(4 + 8 * w);
         }
         return s;
     }
@@ -883,27 +872,24 @@ public class LauncherActivity extends Activity
         for (CarPage p : carPages) {
             p.clear();
         }
-        shiftLights.setFraction(0f);
     }
 
     /** Fondo scala del tachimetro e soglie dei giri, come scelti nelle impostazioni. */
     private void applyGaugeScales() {
         int maxSpeed = Prefs.getMaxSpeed(this);
         for (CarPage p : carPages) {
-            p.speedGauge.configure(maxSpeed, 0, maxSpeed > 210 ? 40 : 20);
+            if (p.rpmMode) {
+                p.speedGauge.configure(maxSpeed, 0, maxSpeed > 210 ? 40 : 20);
+            }
         }
         shiftRpm = Prefs.getShiftRpm(this);
         redRpm = Prefs.getRedRpm(this);
         minRpm = Prefs.getMinRpm(this);
-        shiftLightsOn = Prefs.getShiftLights(this);
-        if (!shiftLightsOn) {
-            shiftLights.setFraction(0f);
-        }
     }
 
     // ================================================================ avvisi
 
-    /** Aggiorna il tasto "Leggi allarmi" e la lista della pagina Avvisi. */
+    /** Aggiorna il tasto "Leggi allarmi" e la lista degli errori della seconda pagina. */
     private void updateAlerts() {
         alertsRead.setEnabled(obdConnected && !reading);
         alertsRead.setText(reading ? R.string.alerts_reading : R.string.alerts_read);
@@ -913,7 +899,7 @@ public class LauncherActivity extends Activity
     /** Firma degli avvisi mostrati: la lista si ricostruisce solo quando cambia. */
     private String alertsShown;
 
-    /** Pagina Avvisi: una riga per avviso (spia motore, codici, avvisi dai valori). */
+    /** Lista degli errori: una riga per avviso (spia motore, codici, avvisi dai valori). */
     private void fillAlertsPage(List<Diagnostics.Alert> alerts) {
         StringBuilder sig = new StringBuilder(obdConnected ? "on" : "off").append(diagReadsSeen > 0 ? "R" : "U");
         for (Diagnostics.Alert a : alerts) {
@@ -970,11 +956,11 @@ public class LauncherActivity extends Activity
     // ================================================================ consumi e trip
 
     private void setupTrip() {
-        // i dati del trip stanno sia nella pagina Consumi sia nella terza colonna della Home
-        tripCells = new TripCells[]{new TripCells(findViewById(R.id.page_car)), new TripCells(findViewById(R.id.page_trip))};
+        // i dati dell'intervallo stanno nella terza colonna della Home
+        tripCells = new TripCells(findViewById(R.id.page_car));
 
         // azzeramento solo con conferma: in auto un tocco per sbaglio è facile
-        View.OnClickListener reset = v -> new AlertDialog.Builder(this)
+        findViewById(R.id.trip_reset_small).setOnClickListener(v -> new AlertDialog.Builder(this)
                 .setMessage(R.string.trip_reset_confirm)
                 .setPositiveButton(R.string.reset, (d, w) -> {
                     obd.resetTrip();
@@ -982,57 +968,41 @@ public class LauncherActivity extends Activity
                     showTrip(obd.tripSummary());
                 })
                 .setNegativeButton(R.string.cancel, null)
-                .show();
-        findViewById(R.id.trip_reset).setOnClickListener(reset);        // pagina Consumi
-        findViewById(R.id.trip_reset_small).setOnClickListener(reset);  // Home
+                .show());
     }
 
     private void showTrip(TripComputer.Summary s) {
         if (s == null) {
             return;
         }
-        Double avg = s.averageL100();
+        TripCells t = tripCells;
         long minutes = Math.round(s.seconds / 60.0);
         Double speed = s.averageSpeedKmh();
         double tank = Math.max(1, Prefs.getTankLiters(this));
-        for (TripCells t : tripCells) {
-            t.distance.setValue(s.distanceKm < 100 ? oneDecimal(s.distanceKm) : String.valueOf(Math.round(s.distanceKm)));
-            if (minutes < 60) {
-                t.time.setValue(String.valueOf(minutes));
-                t.time.setUnit("min");
-            } else {
-                t.time.setValue(String.format(IT, "%d:%02d", minutes / 60, minutes % 60));
-                t.time.setUnit("h");
-            }
-            t.fuelUsed.setValue(String.format(IT, "%.2f", s.fuelLiters));
-            if (!t.home) { // pagina Consumi: media in l/100 km, velocità media e grafico del consumo
-                t.avg.setValue(avg != null ? oneDecimal(avg) : dash());
-                t.avgSpeed.setValue(speed != null ? String.valueOf(Math.round(speed)) : dash());
-                t.chart.setData(lastHistory, avg);
-                continue;
-            }
-            // Home: quota del serbatoio consumata, e con "Consumo dettagliato" velocità media e costo
-            t.fuelPct.setValue(oneDecimal(s.fuelLiters / tank * 100.0));
-            t.detailBlock.setVisibility(Prefs.getDetailedConsumption(this) ? View.VISIBLE : View.GONE);
-            t.avgSpeed.setValue(speed != null ? String.valueOf(Math.round(speed)) : dash());
-            t.cost.setValue(String.format(IT, "%.2f", s.fuelLiters * Prefs.getFuelPriceCents(this) / 100.0));
-            t.chart.setData(lastSpeedHistory, speed);
+        t.distance.setValue(s.distanceKm < 100 ? oneDecimal(s.distanceKm) : String.valueOf(Math.round(s.distanceKm)));
+        if (minutes < 60) {
+            t.time.setValue(String.valueOf(minutes));
+            t.time.setUnit("min");
+        } else {
+            t.time.setValue(String.format(IT, "%d:%02d", minutes / 60, minutes % 60));
+            t.time.setUnit("h");
         }
+        t.fuelUsed.setValue(String.format(IT, "%.2f", s.fuelLiters));
+        t.fuelPct.setValue(oneDecimal(s.fuelLiters / tank * 100.0));
+        // con "Consumo dettagliato": velocità media e costo
+        t.detailBlock.setVisibility(Prefs.getDetailedConsumption(this) ? View.VISIBLE : View.GONE);
+        t.avgSpeed.setValue(speed != null ? String.valueOf(Math.round(speed)) : dash());
+        t.cost.setValue(String.format(IT, "%.2f", s.fuelLiters * Prefs.getFuelPriceCents(this) / 100.0));
+        t.chart.setData(lastSpeedHistory, speed);
     }
 
-    /**
-     * Le caselle del trip e il grafico di una pagina: la Home ({@code home}: distanza, tempo, carburante consumato
-     * in % e litri, riga extra con velocità media e costo, grafico della velocità) e la pagina Consumi.
-     * I campi che una pagina non ha sono null.
-     */
+    /** Le caselle dell'intervallo (terza colonna della Home): distanza, tempo, carburante consumato, riga extra e grafico. */
     private static final class TripCells {
-        final boolean home;
-        final MetricCellView avg, distance, time, avgSpeed, fuelUsed, fuelPct, cost;
+        final MetricCellView distance, time, avgSpeed, fuelUsed, fuelPct, cost;
         final View detailBlock;
         final ConsumptionChartView chart;
 
         TripCells(View root) {
-            avg = root.findViewById(R.id.cell_avg);
             distance = root.findViewById(R.id.cell_distance);
             time = root.findViewById(R.id.cell_time);
             avgSpeed = root.findViewById(R.id.cell_avg_speed);
@@ -1041,10 +1011,7 @@ public class LauncherActivity extends Activity
             cost = root.findViewById(R.id.cell_cost);
             detailBlock = root.findViewById(R.id.home_detail_block);
             chart = root.findViewById(R.id.consumption_chart);
-            home = fuelPct != null;
-            if (home) {
-                chart.setScale(50, 100, "media %.0f");
-            }
+            chart.setScale(50, 100, "media %.0f"); // il grafico mostra la velocità
         }
     }
     // ================================================================ utilità
@@ -1082,7 +1049,6 @@ public class LauncherActivity extends Activity
         }
         updateDate();
         fillAppColumn(); // le app scelte possono essere cambiate nelle impostazioni
-        lastHistory = obd.consumptionHistory();
         lastSpeedHistory = obd.speedHistory();
         showTrip(obd.tripSummary());
         // se nelle impostazioni è stato scelto un altro adattatore, ricollegati
@@ -1117,6 +1083,7 @@ public class LauncherActivity extends Activity
         obd.stop();
         nav.setListener(null);
         nav.stop();
+        radio.stop();
         super.onDestroy();
     }
 

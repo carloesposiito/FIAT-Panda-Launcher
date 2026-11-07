@@ -1,174 +1,292 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Pagina Auto: foto dell'auto al centro, dati a sinistra (guida) e in fila sotto la foto (motore e serbatoio).
-     Seconda pagina della Home, con lo schema delle marce. La prima pagina è page_home.xml. -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Seconda pagina: la foto dell'auto al centro con i dati sopra e sotto, collegati da linee; a destra, dopo
+     un separatore verticale e più stretti, gli errori letti dalla centralina (tasto "Leggi" e sotto la lista).
+     La prima pagina è page_home.xml. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:baselineAligned="false"
+    android:orientation="horizontal"
+    android:paddingStart="25dp"
+    android:paddingTop="33dp"
+    android:paddingEnd="36.5dp"
+    android:paddingBottom="22dp">
 
-    <LinearLayout
-        android:id="@+id/tiles_left"
-        android:layout_width="212dp"
-        android:layout_height="match_parent"
-        android:layout_marginStart="25dp"
-        android:layout_marginTop="33dp"
-        android:layout_marginBottom="22dp"
-        android:orientation="vertical"
-        android:paddingTop="12dp">
-
-        <!-- tachimetro piccolo -->
-        <!-- 152dp di larghezza = arco di 150dp: giri e marce sono larghi uguale -->
-        <it.panda.launcher.ui.GaugeView
-            android:id="@+id/speed_gauge"
-            android:layout_width="152dp"
-            android:layout_height="122dp"
-            android:layout_gravity="center_horizontal" />
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="18dp"
-            android:layout_marginEnd="8dp"
-            android:layout_marginBottom="20dp"
-            android:background="@drawable/bg_sep_racing" />
-
-        <!-- marce: schema del cambio, con la freccia "cambia marcia" sul lato destro -->
-        <FrameLayout
-            android:id="@+id/gear_group"
-            android:layout_width="150dp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal">
-
-            <it.panda.launcher.ui.GearShiftView
-                android:id="@+id/gear_shift"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:contentDescription="@string/unit_gear" />
-
-            <ImageView
-                android:id="@+id/shift_arrow"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:layout_gravity="top|start"
-                android:contentDescription="@string/shift_up"
-                android:src="@drawable/ic_shift_up"
-                android:visibility="gone" />
-        </FrameLayout>
-
-    </LinearLayout>
-
-    <!-- zona dell'auto: foto, dati e linee in un unico riquadro largo quanto serve -->
+    <!-- ===== Auto e dati ===== -->
     <FrameLayout
-        android:id="@+id/car_zone"
-        android:layout_width="611.5dp"
+        android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_gravity="start"
-        android:layout_marginStart="237dp"
-        android:layout_marginTop="33dp"
-        android:layout_marginBottom="22dp">
+        android:layout_marginEnd="22dp"
+        android:layout_weight="3.3">
 
-        <!-- foto e fila di dati una sotto l'altra: la fila sta a 2,5dp dal bordo della foto -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical">
 
+            <!-- sopra: motore -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <it.panda.launcher.ui.MetricCellView
+                    android:id="@+id/cell_coolant"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_nav_chip"
+                    android:paddingStart="8dp"
+                    android:paddingTop="6dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="6dp"
+                    app:centerContent="true"
+                    app:compact="true"
+                    app:centered="true"
+                    app:icon="water"
+                    app:iconSize="30dp"
+                    app:label="@string/label_coolant"
+                    app:large="true"
+                    app:unit="@string/unit_celsius"
+                    app:valueSize="28sp"
+                    app:valueTemplate="000" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <it.panda.launcher.ui.MetricCellView
+                    android:id="@+id/cell_battery"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_nav_chip"
+                    android:paddingStart="8dp"
+                    android:paddingTop="6dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="6dp"
+                    app:centerContent="true"
+                    app:compact="true"
+                    app:centered="true"
+                    app:icon="battery"
+                    app:iconSize="30dp"
+                    app:label="@string/label_battery"
+                    app:large="true"
+                    app:unit="@string/unit_volt"
+                    app:valueSize="28sp"
+                    app:valueTemplate="00,0" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <it.panda.launcher.ui.MetricCellView
+                    android:id="@+id/cell_intake"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_nav_chip"
+                    android:paddingStart="8dp"
+                    android:paddingTop="6dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="6dp"
+                    app:centerContent="true"
+                    app:compact="true"
+                    app:centered="true"
+                    app:icon="air"
+                    app:iconSize="30dp"
+                    app:label="@string/label_intake"
+                    app:large="true"
+                    app:unit="@string/unit_celsius"
+                    app:valueSize="28sp"
+                    app:valueTemplate="000" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <it.panda.launcher.ui.MetricCellView
+                    android:id="@+id/cell_load"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_nav_chip"
+                    android:paddingStart="8dp"
+                    android:paddingTop="6dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="6dp"
+                    app:centerContent="true"
+                    app:compact="true"
+                    app:centered="true"
+                    app:icon="engine"
+                    app:iconSize="30dp"
+                    app:label="@string/label_load"
+                    app:large="true"
+                    app:unit="@string/unit_percent"
+                    app:valueSize="28sp"
+                    app:valueTemplate="000" />
+            </LinearLayout>
+
             <ImageView
-                android:id="@+id/car_image"
-                android:layout_width="526dp"
+                android:id="@+id/car_image_data"
+                android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_gravity="center_horizontal"
+                android:layout_marginStart="40dp"
+                android:layout_marginTop="44dp"
+                android:layout_marginEnd="40dp"
+                android:layout_marginBottom="44dp"
                 android:layout_weight="1"
                 android:contentDescription="@string/app_name"
                 android:scaleType="fitCenter"
                 android:src="@drawable/car_panda" />
 
-            <!-- dati in una fila in basso, da davanti a dietro -->
+            <!-- sotto: guida e serbatoio -->
             <LinearLayout
-                android:id="@+id/car_data_row"
-                android:layout_width="542dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="2.5dp"
-                android:layout_marginBottom="45dp"
+                android:baselineAligned="false"
                 android:orientation="horizontal">
 
                 <it.panda.launcher.ui.MetricCellView
-                    android:id="@+id/cell_coolant"
-                    android:layout_width="0dp"
+                    android:id="@+id/cell_throttle"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:layout_marginEnd="4dp"
-                    android:layout_weight="1"
-                    android:background="@android:color/transparent"
-                    android:contentDescription="@string/label_coolant"
-                    android:paddingStart="4dp"
-                    android:paddingTop="2.5dp"
-                    android:paddingEnd="4dp"
-                    android:paddingBottom="2.5dp"
-                    app:icon="water"
+                    android:background="@drawable/bg_nav_chip"
+                    android:paddingStart="8dp"
+                    android:paddingTop="6dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="6dp"
                     app:centerContent="true"
                     app:compact="true"
-                    app:iconSize="34dp"
+                    app:centered="true"
+                    app:icon="pedal"
+                    app:iconSize="30dp"
+                    app:label="@string/label_throttle"
                     app:large="true"
-                    app:valueTemplate="000"
-                    app:unit="@string/unit_celsius" />
+                    app:unit="@string/unit_percent"
+                    app:valueSize="28sp"
+                    app:valueTemplate="000" />
 
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="28dp"
-                    android:layout_gravity="center_vertical"
-                    android:background="@color/line_strong" />
-
-                <it.panda.launcher.ui.MetricCellView
-                    android:id="@+id/cell_battery"
+                <Space
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:layout_marginEnd="4dp"
-                    android:layout_weight="1"
-                    android:background="@android:color/transparent"
-                    android:contentDescription="@string/label_battery"
-                    android:paddingStart="4dp"
-                    android:paddingTop="2.5dp"
-                    android:paddingEnd="4dp"
-                    android:paddingBottom="2.5dp"
-                    app:icon="battery"
-                    app:centerContent="true"
-                    app:compact="true"
-                    app:iconSize="34dp"
-                    app:large="true"
-                    app:valueTemplate="00,0"
-                    app:unit="@string/unit_volt" />
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="28dp"
-                    android:layout_gravity="center_vertical"
-                    android:background="@color/line_strong" />
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
 
                 <it.panda.launcher.ui.MetricCellView
                     android:id="@+id/cell_fuel"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:layout_marginEnd="4dp"
-                    android:layout_weight="1"
-                    android:background="@android:color/transparent"
-                    android:contentDescription="@string/label_fuel"
-                    android:paddingStart="4dp"
-                    android:paddingTop="2.5dp"
-                    android:paddingEnd="4dp"
-                    android:paddingBottom="2.5dp"
-                    app:icon="fuel"
+                    android:background="@drawable/bg_nav_chip"
+                    android:paddingStart="8dp"
+                    android:paddingTop="6dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="6dp"
                     app:centerContent="true"
                     app:compact="true"
-                    app:iconSize="34dp"
+                    app:centered="true"
+                    app:icon="fuel"
+                    app:iconSize="30dp"
+                    app:label="@string/label_fuel"
                     app:large="true"
-                    app:valueTemplate="000"
-                    app:unit="@string/unit_percent" />
+                    app:unit="@string/unit_percent"
+                    app:valueSize="28sp"
+                    app:valueTemplate="000" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <it.panda.launcher.ui.MetricCellView
+                    android:id="@+id/cell_fuel_left"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_nav_chip"
+                    android:paddingStart="8dp"
+                    android:paddingTop="6dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="6dp"
+                    app:centerContent="true"
+                    app:compact="true"
+                    app:centered="true"
+                    app:icon="drop"
+                    app:iconSize="30dp"
+                    app:label="@string/label_fuel_left"
+                    app:large="true"
+                    app:unit="@string/unit_l"
+                    app:valueSize="28sp"
+                    app:valueTemplate="00,0" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <it.panda.launcher.ui.MetricCellView
+                    android:id="@+id/cell_range"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_nav_chip"
+                    android:paddingStart="8dp"
+                    android:paddingTop="6dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="6dp"
+                    app:centerContent="true"
+                    app:compact="true"
+                    app:centered="true"
+                    app:icon="route"
+                    app:iconSize="30dp"
+                    app:label="@string/label_range"
+                    app:large="true"
+                    app:unit="@string/unit_km"
+                    app:valueSize="28sp"
+                    app:valueTemplate="0000" />
             </LinearLayout>
         </LinearLayout>
+
+        <!-- linee dalle caselle alla carrozzeria (i punti si impostano nel codice) -->
+        <it.panda.launcher.ui.CarLinesView
+            android:id="@+id/car_lines"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
     </FrameLayout>
-</FrameLayout>
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="22dp"
+        android:background="@color/line" />
+
+    <!-- ===== Errori: stretti, perché spesso sono vuoti. Tasto di lettura e sotto la lista ===== -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="14dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/alerts_read"
+            style="@style/ActionButton"
+            android:layout_width="match_parent"
+            android:layout_marginTop="4dp"
+            android:text="@string/alerts_read" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="8dp"
+            android:layout_weight="1"
+            android:scrollbars="none">
+
+            <!-- riempita dal codice: una riga per errore -->
+            <LinearLayout
+                android:id="@+id/alerts_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+    </LinearLayout>
+</LinearLayout>

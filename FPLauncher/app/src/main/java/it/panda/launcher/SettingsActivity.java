@@ -107,8 +107,6 @@ public class SettingsActivity extends Activity {
         if (enabled) {
             buildObdAdapter();
         }
-        addSwitch(R.string.pref_car_data, Prefs.getCarData(this), checked -> Prefs.setCarData(this, checked));
-        addSwitch(R.string.pref_shift_lights, Prefs.getShiftLights(this), checked -> Prefs.setShiftLights(this, checked));
     }
 
     /** Stato del collegamento e scelta dell'adattatore ELM327. */
@@ -180,23 +178,29 @@ public class SettingsActivity extends Activity {
     // ---------------------------------------------------------------- navigazione (goESP)
 
     private void buildNavSection() {
-        addTitle(R.string.pref_nav_title);
-        boolean enabled = Prefs.getNavEnabled(this);
-        Switch use = new Switch(this);
-        use.setText(R.string.pref_nav_enable);
-        use.setTextColor(getColor(R.color.text));
-        use.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        use.setChecked(enabled);
-        use.setPadding(0, dp(8), 0, dp(8));
-        use.setOnCheckedChangeListener((b, checked) -> {
-            Prefs.setNavEnabled(this, checked);
-            if (checked && !BluetoothPermissions.canAdvertise(this)) {
-                requestPermissions(BluetoothPermissions.runtimePermissions(), REQUEST_BT);
-            }
-            build();
-        });
-        content.addView(use);
-        if (enabled) {
+        addTitle(R.string.pref_extra_title);
+        int mode = Prefs.getExtraData(this);
+        RadioGroup modes = new RadioGroup(this);
+        int[] values = {Prefs.EXTRA_OFF, Prefs.EXTRA_NAV, Prefs.EXTRA_RADIO};
+        int[] labels = {R.string.pref_extra_off, R.string.pref_extra_nav, R.string.pref_extra_radio};
+        for (int i = 0; i < values.length; i++) {
+            final int value = values[i];
+            RadioButton rb = radio(getString(labels[i]));
+            modes.addView(rb);
+            rb.setChecked(value == mode);
+            rb.setOnClickListener(v -> {
+                Prefs.setExtraData(this, value);
+                if (value == Prefs.EXTRA_NAV && !BluetoothPermissions.canAdvertise(this)) {
+                    requestPermissions(BluetoothPermissions.runtimePermissions(), REQUEST_BT);
+                }
+                build();
+            });
+        }
+        content.addView(modes);
+        if (mode == Prefs.EXTRA_RADIO) {
+            buildRadioAccess();
+        }
+        if (mode == Prefs.EXTRA_NAV) {
             NavReceiver.State s = NavReceiver.get(this).state();
             String text;
             int color = R.color.muted;
@@ -244,6 +248,23 @@ public class SettingsActivity extends Activity {
         }
     }
 
+    /** Per la radio serve l'accesso alle notifiche, che si concede dalle impostazioni di sistema. */
+    private void buildRadioAccess() {
+        boolean granted = it.panda.launcher.radio.RadioWatcher.hasAccess(this);
+        TextView status = addHintText(getString(granted ? R.string.pref_radio_access_on : R.string.pref_radio_access_off));
+        status.setTextColor(getColor(granted ? R.color.ok : R.color.muted));
+        if (!granted) {
+            Button grant = addButton(R.string.pref_radio_grant);
+            grant.setOnClickListener(v -> {
+                try {
+                    startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+                } catch (android.content.ActivityNotFoundException e) {
+                    android.widget.Toast.makeText(this, R.string.pref_radio_unavailable, android.widget.Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+    }
+
     // ---------------------------------------------------------------- motore
 
     private void buildCarSection() {
@@ -251,8 +272,8 @@ public class SettingsActivity extends Activity {
         addSubtitle(R.string.pref_engine_title);
         RadioGroup group = new RadioGroup(this);
         int current = Prefs.getDisplacementCc(this);
-        int[] cc = {Prefs.CC_11, Prefs.CC_12, Prefs.CC_14};
-        int[] labels = {R.string.pref_engine_11, R.string.pref_engine_12, R.string.pref_engine_14};
+        int[] cc = {Prefs.CC_12};
+        int[] labels = {R.string.pref_engine_12};
         for (int i = 0; i < cc.length; i++) {
             final int value = cc[i];
             RadioButton rb = radio(getString(labels[i]));

@@ -60,8 +60,6 @@ public final class ObdManager {
     private final Handler main = new Handler(Looper.getMainLooper());
     /** Trip: si azzera solo a mano ed è salvato nelle impostazioni. */
     private final TripComputer trip = new TripComputer();
-    /** Consumo dell'ultima mezz'ora dall'ultimo collegamento, per il grafico. */
-    private final ConsumptionHistory history = new ConsumptionHistory();
     /** Velocità dell'ultima mezz'ora dall'ultimo collegamento, per il grafico della Home. */
     private final SpeedHistory speedHistory = new SpeedHistory();
     private volatile long lastTripSaveMs;
@@ -91,10 +89,6 @@ public final class ObdManager {
 
     public TripComputer.Summary tripSummary() {
         return trip.summary();
-    }
-
-    public java.util.List<Double> consumptionHistory() {
-        return history.points();
     }
 
     public java.util.List<Double> speedHistory() {
@@ -225,7 +219,6 @@ public final class ObdManager {
                 dtcPending = null;
                 diagReads = 0;
                 diagRequested = false;
-                history.reset();
                 speedHistory.reset();
                 postState(State.CONNECTED, ObdParser.clean(c.send("ATDP", 1000)));
                 poll(c, supported);
@@ -353,10 +346,6 @@ public final class ObdManager {
         s.dtcStored = dtcStored;
         s.dtcPending = dtcPending;
 
-        if (s.rpm != null && s.speedKmh != null) {
-            s.gear = GearEstimator.estimate(s.rpm, s.speedKmh);
-        }
-
         // Consumo: misurato se la centralina lo fornisce, altrimenti ricavato dall'aria aspirata
         // (MAF se c'è, altrimenti stimata dalla pressione nel collettore).
         Double lph = v.get(ObdPid.FUEL_RATE);
@@ -383,7 +372,6 @@ public final class ObdManager {
         // intervalli troppo lunghi (es. una lettura bloccata) falserebbero i conti: si saltano
         if (seconds > 0 && seconds < 5) {
             trip.add(lph, s.speedKmh, seconds);
-            history.add(lph, s.speedKmh, seconds);
             speedHistory.add(s.speedKmh, seconds);
             if (estimatedLph != null && calibrationOn()
                     && calibrator.add(s.fuelLevelPct, estimatedLph * seconds / 3600.0, seconds, Prefs.getTankLiters(app))) {
@@ -391,7 +379,6 @@ public final class ObdManager {
             }
         }
         s.trip = trip.summary();
-        s.history = history.points();
         s.speedHistory = speedHistory.points();
         return s;
     }

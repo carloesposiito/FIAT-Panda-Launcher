@@ -1,119 +1,128 @@
 # Panda Launcher
 
-Launcher Android per l'autoradio della Fiat Panda 169, su tre colonne:
+**Un cruscotto digitale su misura per una Fiat Panda 169, costruito da zero come launcher Android per un'autoradio cinese.**
 
-- **sinistra**: icone delle app scelte, poi (sotto un separatore) *spegni schermo* e *impostazioni*;
-- **centro**: barra della radio (frequenza, stazione, volume), Panda 3D da ruotare, marcia / velocità / giri;
-- **destra**: ora, giorno, temperatura esterna, dati dell'auto, consumi con viaggio e trip.
+La radio di serie mostra icone e un'app per la musica. Questo progetto la trasforma in un cruscotto: tachimetro e contagiri
+disegnati a mano, dati veri letti dalla centralina, indicazioni di Google Maps direttamente nella Home, la frequenza
+della radio, la diagnosi degli errori motore. Tutto in Java, senza librerie di terzi per l'interfaccia, pensato per leggersi
+con un'occhiata mentre si guida.
 
-Progetto in **Java**, rendering 3D con [Filament](https://github.com/google/filament) di Google.
+![Home con le indicazioni di navigazione](Extra/Immagini/Screenshots/home-navigatore.png)
+
+## Cosa fa
+
+### Home: velocità, giri e viaggio in tre colonne
+
+- **Tachimetro** disegnato in codice (`GaugeView`): quadrante scuro con sfumatura, arco di 240°, tacche e numeri, fondo scala configurabile.
+- **Giri motore** in migliaia, con una barra a segmenti che si riempie fino ai giri di cambio marcia (da impostare).
+  Una freccia grigia lampeggia verso l'alto quando conviene salire di marcia e verso il basso quando si sta in marcia sotto i giri minimi.
+- **Auto vista dall'alto** al centro, con il livello del serbatoio.
+- **Computer di bordo**: distanza, tempo, percentuale e litri di carburante consumati, e (opzionale) velocità media e costo in euro.
+  Sotto, un grafico della velocità nell'ultima mezz'ora, con la media.
+- **Sezione "Dati aggiuntivi" sopra il tachimetro**, a scelta tra *Disattivato*, *Navigatore* e *Radio*:
+
+| Navigatore (goESP) | Radio |
+|---|---|
+| ![Navigatore](Extra/Immagini/Screenshots/home-navigatore.png) | ![Radio](Extra/Immagini/Screenshots/home-radio.png) |
+
+  - **Navigatore**: freccia della manovra, distanza, via, tempo e orario di arrivo. I dati arrivano dall'app **goESP** sul telefono,
+    che il launcher imita come se fosse il suo display.
+  - **Radio**: la frequenza (titolo e descrizione) letta dalla notifica dell'app radio dell'autoradio.
+
+### Seconda pagina: l'auto e i suoi dati
+
+L'auto è al centro, con i dati sopra e sotto collegati da linee ai punti della carrozzeria. A destra, in una colonna stretta
+perché spesso è vuota, gli errori letti dalla centralina.
+
+![Dati dell'auto ed errori](Extra/Immagini/Screenshots/auto-dati-errori.png)
+
+- **Misurati**: temperatura acqua, tensione batteria (con l'icona della carica dell'alternatore), livello serbatoio,
+  temperatura dell'aria aspirata, carico motore, posizione dell'acceleratore.
+- **Stimati**: carburante residuo in litri e autonomia, calcolata dal consumo medio del viaggio.
+- **Errori**: pulsante *Leggi allarmi* e lista con spia motore, codici di errore memorizzati e in attesa, e avvisi ricavati dai valori
+  (acqua troppo calda, batteria che non carica). I codici sono tradotti in italiano.
+
+### Il resto
+
+- Colonna delle app scelte, con impostazioni e tasti del volume.
+- Icone, scritte e riquadri semitrasparenti pensati per essere leggibili da un posto di guida, su uno schermo scuro.
+- Modalità dimostrativa con dati finti per provare tutta la grafica senza auto né adattatore.
+
+## Sotto il cofano
+
+**OBD senza strumenti da officina.** Un adattatore ELM327 economico parla con la centralina via Bluetooth (RFCOMM).
+Il launcher chiede i PID standard uno alla volta (la centralina del Fire risponde in circa 280 ms a richiesta),
+li interpreta e ne ricava un'istantanea dei dati. La lettura continua anche quando si usa un'altra app.
+
+**Un consumo che nessuno ti dà, stimato bene.** Il motore Fire non comunica il consumo e di solito nemmeno il flusso d'aria.
+`FuelEstimator` lo ricostruisce con il metodo *speed-density*: dalla pressione nel collettore, dai giri, dalla temperatura dell'aria
+e dalla cilindrata ricava l'aria aspirata, e da quella la benzina (rapporto stechiometrico 14,7).
+`FuelCalibrator` poi **si tara da solo**: confronta i litri stimati con il calo reale del livello del serbatoio
+e corregge il modello con un fattore che si aggiorna piano, ignorando rumore e rifornimenti.
+Da qui escono anche costo del viaggio e autonomia.
+
+**Un display che il telefono crede vero.** Per la navigazione il launcher si comporta come un display goESP (basato su ESP32):
+pubblica via Bluetooth Low Energy lo stesso servizio GATT e il telefono vi scrive i pacchetti di manovra.
+Nessun server, nessun cloud, nessuna app da modificare.
+
+**La radio, senza toccare la radio.** Un `NotificationListenerService` legge la notifica di riproduzione dell'app radio
+(categoria *transport* o stile multimediale) e ne mostra titolo e descrizione.
+
+**Grafica disegnata a mano.** Tachimetro, barra dei giri, grafico della velocità e linee dall'auto sono `View` personalizzate
+disegnate su `Canvas`: le linee seguono i punti della foto qualunque sia la dimensione dello schermo.
+
+**Diagnosi.** Decodifica dei codici di errore OBD-II (modi 03 e 07) con un catalogo in italiano, e regole che trasformano
+i valori letti in avvisi.
+
+**Testato.** Le parti senza dipendenze Android (parser OBD, stime di consumo, taratura, trip, diagnosi, storico velocità)
+sono classi pure con test JUnit.
 
 ## Struttura
 
 ```
-app/src/main/
-  java/it/panda/launcher/
-    LauncherActivity.java     schermata Home (tre colonne)
-    SettingsActivity.java     app della colonna, radio, adattatore OBD, motore, rotazione
-    AppPickerActivity.java    scelta e ordine delle app della colonna
-    ScreenOffActivity.java    "spegni lo schermo" (schermata nera, un tocco la richiude)
-    Prefs.java                impostazioni salvate
-    car/CarRenderer.java      auto 3D: caricamento .glb, rotazione, tocco, 30 fps
-    car/StudioEnvironment.java luci da showroom generate in codice (riflessi sulla vernice)
-    apps/                     elenco delle app installate
-    media/                    lettura della notifica della radio (frequenza e stazione)
-    obd/                      ELM327 via Bluetooth, PID standard, consumi, marcia, computer di bordo
-    ui/                       pedana sotto l'auto, schema del cambio, righe dati
-  assets/models/panda.glb     modello 3D (per ora provvisorio)
-app/src/test/                 test JUnit (OBD, trip, testi della radio)
-tools/genera-modello/         script che genera il panda.glb provvisorio
-prototipo/mockup.html         prototipo web della prima versione della schermata
+FPLauncher/
+  app/src/main/
+    java/it/panda/launcher/
+      LauncherActivity.java      Home e seconda pagina, tutta la logica dello schermo
+      SettingsActivity.java      app, OBD, dati aggiuntivi, modello, tachimetro, consumi
+      AppPickerActivity.java     scelta e ordine delle app della colonna
+      Prefs.java                 impostazioni salvate
+      obd/                       ELM327, PID, parser, stime di consumo, taratura, trip, diagnosi
+      nav/                       ricevitore goESP via Bluetooth LE e dati di navigazione
+      radio/                     lettura della notifica dell'app radio
+      apps/                      elenco delle app installate
+      ui/                        GaugeView, ShiftLightsView, CarLinesView, MetricCellView, grafico
+    assets/directions/           frecce delle manovre
+  app/src/test/                  test JUnit
+Extra/
+  APK/                           APK compilata
+  Immagini/                      foto dell'auto e screenshot
 ```
 
-## Aprire e installare
+## Compilare e installare
 
-1. Android Studio → **Open** → questa cartella. Al primo avvio scarica Gradle 8.13 e le librerie.
-   Se segnala che manca il "Gradle wrapper", accetta di crearlo.
-2. Collega l'autoradio al PC (USB con debug attivo, oppure `adb connect <ip>` via Wi-Fi) e premi **Run**.
-   In alternativa: **Build → Build APK(s)** e copia l'APK su una chiavetta.
-3. Sull'autoradio premi Home e scegli **Panda Launcher** → "Sempre".
-   Se non compare la scelta: Impostazioni → App → App predefinite → App Home.
-   Il launcher originale resta installato e si può sempre riattivare.
+Servono JDK 17 o superiore e Android SDK (minSdk 24, targetSdk 34).
 
-## Colonna app
+1. Apri la cartella `FPLauncher` in Android Studio, oppure da riga di comando:
+   `gradle :app:assembleDebug :app:testDebugUnitTest`
+2. L'APK è in `FPLauncher/app/build/outputs/apk/debug/app-debug.apk`; una copia pronta è in `Extra/APK/PandaLauncher.apk`.
+3. Installala sull'autoradio (USB con debug attivo, oppure da chiavetta).
+4. Premi Home e scegli **Panda Launcher** → "Sempre". Il launcher originale resta installato e si può riattivare.
 
-- Impostazioni (ingranaggio in basso a sinistra) → **Scegli e ordina le app**: si spuntano le app e si ordinano con le frecce.
-- Il numero di icone dipende dall'altezza dello schermo: la Home lo calcola e l'editor lo mostra
-  (le app oltre quel numero restano in elenco, sbiadite, ma non si vedono).
-- Finché non si sceglie nulla compaiono le prime app in ordine alfabetico.
-- Pressione lunga su un'icona: informazioni sull'app.
-- **Spegni schermo**: schermata nera con luminosità al minimo, la radio continua; un tocco riaccende.
+## Impostazioni
 
-## Radio
+Dalla Home, ingranaggio in basso a sinistra:
 
-La barra in alto legge la **notifica** dell'app radio. Android lo permette solo dopo aver dato
-al launcher l'**accesso alle notifiche** (Impostazioni del launcher → Radio → *Apri accesso alle notifiche*).
-Se l'autoradio non ha quella pagina, si può abilitare dal PC:
+![Impostazioni](Extra/Immagini/Screenshots/impostazioni-2.png)
 
-```
-adb shell cmd notification allow_listener it.panda.launcher/it.panda.launcher.media.RadioNotificationListener
-```
+- **OBD**: attivazione e scelta dell'adattatore ELM327 già associato dalle impostazioni Bluetooth di Android (PIN di solito `1234` o `0000`).
+- **Dati aggiuntivi**: Disattivato, Navigatore (goESP) o Radio. Per la radio serve l'accesso alle notifiche, che si concede dalle impostazioni di sistema.
+- **Modello**: Fiat Panda 169 AXF1A 08B, 1242 cm³ (altri modelli si aggiungono in `Prefs`).
+- **Tachimetro e giri**: fondo scala (160 km/h di default), giri per cambiare marcia (6000), giri minimi (1500), giri massimi (6500).
+- **Consumi**: taratura automatica, capacità del serbatoio (38 l), consumo dettagliato con velocità media e costo, prezzo del carburante (1,90 €/l).
 
-- L'app radio viene riconosciuta da sola; se sbaglia, sceglila in Impostazioni → Radio → *Scegli l'app radio*.
-- Se la radio scrive solo la frequenza (es. "101.30 MHz"), **tieni premuta la barra** per dare un nome
-  alla stazione: viene ricordato per quella frequenza.
-- Tocco sulla barra: apre la radio. Volume: tasti − e + (volume "musica" di Android).
+## Stato
 
-## Modello 3D
-
-- Trascina per ruotare (in verticale cambia l'altezza della camera), doppio tocco per tornare alla vista 3/4.
-- Il tasto in alto a destra accende/spegne la rotazione automatica.
-
-Il file `panda.glb` viene dal modello **"Fiat Panda 169" di lowendguru** su Thingiverse
-(https://www.thingiverse.com/thing:7087348, licenza **CC BY-SA**), preparato e colorato con Blender
-dagli script in `tools/modello-blender/`:
-
-1. `01_prepara.py`: importa l'STL, lo porta in metri (3,54 m) col muso verso +X e lo alleggerisce a ~110.000 triangoli;
-2. `02_colora.py`: assegna i materiali per zone (carrozzeria, vetri, fari, fanali, gomme, cerchi, plastiche) ed esporta il `.glb`.
-   Il colore della carrozzeria si sceglie in fondo al comando: `nero` (predefinito), `rosso`, `bianco`, `grigio`, `blu`, `giallo`, `verde`;
-3. `render_viste.py`: render di controllo da più angolazioni.
-
-```
-blender --background --python 01_prepara.py -- "<file.stl>" <cartella>
-blender --background <cartella>/panda_base.blend --python 02_colora.py -- <cartella> nero
-```
-
-Per ritoccare a mano i confini delle zone: apri `tools/modello-blender/panda_colorata.blend` in Blender,
-in modalità Edit seleziona le facce e assegna il materiale giusto (pannello Materiali → Assign), poi
-**File → Export → glTF 2.0** (formato *glTF Binary .glb*) sopra `app/src/main/assets/models/panda.glb`.
-Il modello provvisorio di prima è in `tools/modello-blender/vecchio/`.
-
-Per usare un altro modello (formato **glTF binario .glb**):
-
-- sostituisci `app/src/main/assets/models/panda.glb`;
-- tienilo leggero: meno di 100.000 triangoli e texture al massimo 2048 px;
-- se il muso non guarda nella direzione giusta, modifica `MODEL_YAW_OFFSET` in `CarRenderer.java`;
-- posizione dell'auto e grandezza della pedana: `TARGET_HEIGHT` e `GROUND_RADIUS` in `CarRenderer.java`.
-
-Per rigenerare quello provvisorio: `cd tools/genera-modello`, poi `npm install` e `npm run genera`.
-
-## OBD
-
-- Associa l'ELM327 dalle impostazioni Bluetooth di Android (PIN di solito `1234` o `0000`).
-- Impostazioni del launcher → scegli l'adattatore e la cilindrata del motore (è sul libretto, alla voce P.1).
-- Dati letti: giri, velocità, temperatura acqua e aria aspirata, pressione collettore, farfalla, carico, tensione batteria.
-  Temperatura olio, livello carburante, temperatura esterna e consumo misurato compaiono solo se la centralina li supporta
-  (sulla 169 spesso no: resta il trattino).
-- Il consumo è **stimato** dalla pressione nel collettore: il Fire non ha il misuratore del flusso d'aria.
-- La marcia è stimata dal rapporto velocità/giri (tabella in `GearEstimator.java`); la retro non è riconoscibile.
-- Tenendo premuta l'etichetta "OBD" si vede il protocollo usato o l'ultimo errore.
-
-### Consumi, viaggio e trip
-
-- **Istantaneo**: l/100 km in movimento, l/h da fermi.
-- **Viaggio**: si azzera da solo a ogni nuovo collegamento all'OBD (in pratica a ogni accensione).
-- **Trip**: continua tra un'accensione e l'altra finché non lo azzeri con il cestino (chiede conferma).
-- Entrambi mostrano consumo medio, distanza, tempo, velocità media (soste escluse) e litri consumati.
-- La lettura OBD continua anche quando si usa un'altra app (navigatore, radio), così i conteggi restano giusti.
-
-Porte, finestrini e climatizzatore non fanno parte dell'OBD standard: per porte e A/C servono i comandi Fiat del Body Computer (fase successiva).
+Progetto personale in uso e in sviluppo. L'interfaccia, la lettura OBD e le stime sono provate; la navigazione via goESP e la lettura
+della radio dipendono dall'hardware dell'autoradio (Bluetooth LE in modalità periferica, app radio che pubblica una notifica di riproduzione).
+Porte, finestrini e climatizzatore non fanno parte dell'OBD standard e richiederebbero i comandi Fiat del Body Computer.

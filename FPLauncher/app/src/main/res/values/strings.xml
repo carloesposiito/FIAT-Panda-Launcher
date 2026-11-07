@@ -18,30 +18,14 @@
     <!-- auto -->
     <string name="unit_kmh">km/h</string>
     <string name="neutral">N</string>
-    <string name="unit_gear">marcia</string>
-    <string name="chart_caption">Consumo l/100 km · ultima mezz\'ora</string>
 
     <!-- pagine -->
     <string name="page_car">Auto</string>
-    <string name="page_trip">Consumi</string>
-    <string name="page_nav">Navigazione</string>
-    <string name="page_alerts">Avvisi</string>
 
     <!-- navigazione -->
     <string name="nav_idle_title">Nessuna navigazione</string>
-    <string name="nav_idle_waiting">Avvia una navigazione con Google Maps sul telefono: le indicazioni arrivano qui tramite l\'app goESP.</string>
-    <string name="nav_idle_off">Il telefono non è collegato. Apri goESP sul telefono e premi Connetti.</string>
-    <string name="nav_unsupported">Questa autoradio non può farsi trovare via Bluetooth LE: la navigazione goESP non è disponibile.</string>
-    <string name="nav_bt_off">Bluetooth spento: accendilo per ricevere la navigazione.</string>
-    <string name="nav_no_permission">Manca il permesso Bluetooth: concedilo dalle impostazioni del launcher.</string>
-    <string name="nav_error">Errore Bluetooth: prova a spegnere e riaccendere la navigazione nelle impostazioni.</string>
-    <string name="nav_connected">Collegato a %1$s</string>
-    <string name="nav_arrival">Arrivo</string>
-    <string name="nav_remaining_distance">Mancano</string>
-    <string name="nav_remaining_time">Tempo</string>
 
     <!-- avvisi -->
-    <string name="alerts_title">Avvisi e diagnosi</string>
     <string name="pref_gauges_title">Tachimetro e giri</string>
     <string name="pref_max_speed">Fondo scala tachimetro</string>
     <string name="pref_shift_rpm">Giri per cambiare marcia</string>
@@ -51,8 +35,6 @@
     <string name="downshift">scala marcia</string>
     <string name="pref_red_rpm">Giri massimi (freccia rossa)</string>
     <string name="shift_up">cambia marcia</string>
-    <string name="pref_car_data">Mostra dati attorno all\'auto</string>
-    <string name="pref_shift_lights">Giri del motore sotto data e ora</string>
     <string name="pref_demo">Dati simulati</string>
     <string name="alerts_read">Leggi allarmi</string>
     <string name="alerts_reading">Lettura…</string>
@@ -68,8 +50,10 @@
     <string name="label_battery">Batteria</string>
     <string name="label_fuel">Serbatoio</string>
     <string name="label_intake">Aria aspirata</string>
+    <string name="label_throttle">Acceleratore</string>
+    <string name="label_fuel_left">Residuo</string>
+    <string name="label_range">Autonomia</string>
     <string name="label_load">Carico motore</string>
-    <string name="label_average">Consumo medio</string>
     <string name="label_distance">Distanza percorsa</string>
     <string name="label_time">Tempo trascorso</string>
     <string name="label_avg_speed">Velocità media</string>
@@ -78,14 +62,12 @@
     <string name="label_cost">Costo</string>
     <string name="unit_euro">€</string>
     <string name="chart_caption_speed">Velocità km/h · ultima mezz\'ora</string>
-    <string name="trip_reset_short">Azzera</string>
     <string name="trip_reset">Azzera i dati</string>
     <string name="trip_reset_confirm">Azzerare distanza, consumi e tempi?</string>
     <string name="reset">Azzera</string>
     <string name="unit_celsius">°C</string>
     <string name="unit_volt">V</string>
     <string name="unit_percent">%</string>
-    <string name="unit_l100">l/100</string>
     <string name="unit_rpm">×1000 rpm</string>
     <string name="unit_km">km</string>
     <string name="unit_l">l</string>
@@ -108,8 +90,18 @@
     <string name="pref_obd_adapter">Adattatore</string>
     <string name="pref_obd_none">Nessun adattatore</string>
     <string name="pref_obd_no_devices">Nessun dispositivo Bluetooth associato.</string>
-    <string name="pref_nav_title">Navigazione</string>
-    <string name="pref_nav_enable">Ricevi navigazione tramite goESP</string>
+    <string name="pref_extra_title">Dati aggiuntivi</string>
+    <string name="pref_extra_off">Disattivato</string>
+    <string name="pref_extra_nav">Navigatore (goESP)</string>
+    <string name="pref_extra_radio">Radio</string>
+    <string name="radio_idle">Radio</string>
+    <string name="radio_idle_text">Nessuna stazione in ascolto</string>
+    <string name="radio_title_no_access">Radio</string>
+    <string name="radio_no_access">Consenti l\'accesso alle notifiche nelle impostazioni</string>
+    <string name="pref_radio_access_on">Accesso alle notifiche: concesso</string>
+    <string name="pref_radio_access_off">Accesso alle notifiche: da concedere (serve per leggere la frequenza della radio)</string>
+    <string name="pref_radio_grant">Concedi accesso alle notifiche</string>
+    <string name="pref_radio_unavailable">Impostazioni di sistema non disponibili su questa autoradio</string>
     <string name="pref_nav_status">Stato: %1$s</string>
     <string name="pref_nav_state_off">spenta</string>
     <string name="pref_nav_state_waiting">in attesa del telefono</string>
@@ -120,10 +112,8 @@
     <string name="pref_nav_state_no_bt">Bluetooth assente</string>
     <string name="pref_nav_state_permission">manca il permesso Bluetooth</string>
     <string name="pref_nav_state_error">errore Bluetooth</string>
-    <string name="pref_engine_title">Cilindrata</string>
-    <string name="pref_engine_11">1.1 Fire (1108 cm³)</string>
-    <string name="pref_engine_12">1.2 Fire (1242 cm³)</string>
-    <string name="pref_engine_14">1.4 16V (1368 cm³)</string>
+    <string name="pref_engine_title">Modello</string>
+    <string name="pref_engine_12">Fiat Panda 169 · AXF1A 08B · 1242 cm³</string>
     <string name="pref_calib">Taratura automatica dei consumi</string>
     <string name="pref_tank">Capacità del serbatoio</string>
     <string name="pref_calib_factor">Correzione attuale: ×%.2f</string>

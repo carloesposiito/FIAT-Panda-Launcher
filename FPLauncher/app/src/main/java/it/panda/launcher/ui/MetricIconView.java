@@ -15,7 +15,7 @@ import it.panda.launcher.R;
  */
 public class MetricIconView extends View {
 
-    public enum Type { NONE, WATER, OIL, BATTERY, FUEL }
+    public enum Type { NONE, WATER, OIL, BATTERY, FUEL, AIR, ENGINE, PEDAL, DROP, ROUTE }
 
     private Drawable normal, charging;
     private Type type = Type.NONE;
@@ -54,6 +54,21 @@ public class MetricIconView extends View {
                 break;
             case FUEL:
                 res = R.drawable.ic_line_fuel;
+                break;
+            case AIR:
+                res = R.drawable.ic_line_air;
+                break;
+            case ENGINE:
+                res = R.drawable.ic_line_engine;
+                break;
+            case PEDAL:
+                res = R.drawable.ic_line_pedal;
+                break;
+            case DROP:
+                res = R.drawable.ic_line_drop;
+                break;
+            case ROUTE:
+                res = R.drawable.ic_line_route;
                 break;
             default:
                 return null;

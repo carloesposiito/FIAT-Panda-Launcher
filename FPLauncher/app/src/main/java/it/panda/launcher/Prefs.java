@@ -19,10 +19,9 @@ public final class Prefs {
     private static final String KEY_TRIP = "trip_state";
     private static final String KEY_PAGE = "home_page";
     private static final String KEY_OBD_ENABLED = "obd_enabled";
-    private static final String KEY_NAV_ENABLED = "nav_enabled";
+    private static final String KEY_NAV_ENABLED = "nav_enabled"; // vecchia impostazione, solo come valore iniziale
+    private static final String KEY_EXTRA_DATA = "extra_data";
     private static final String KEY_DEMO = "demo_data";
-    private static final String KEY_CAR_DATA = "car_data";
-    private static final String KEY_SHIFT_LIGHTS = "shift_lights";
     private static final String KEY_MAX_SPEED = "max_speed";
     private static final String KEY_RED_RPM = "red_rpm";
     private static final String KEY_SHIFT_RPM = "shift_rpm";
@@ -34,10 +33,8 @@ public final class Prefs {
     private static final String KEY_CALIB_STATE = "fuel_calibration_state";
     private static final String KEY_CALIB_EPOCH = "fuel_calibration_epoch";
 
-    /** Cilindrate dei motori benzina della Panda 169. */
-    public static final int CC_11 = 1108;
+    /** Cilindrata del motore: per ora solo la Fiat Panda 169 AXF1A 08B, 1242 cm³ (dal libretto); altri modelli si aggiungono qui. */
     public static final int CC_12 = 1242;
-    public static final int CC_14 = 1368;
 
     private Prefs() {
     }
@@ -46,13 +43,22 @@ public final class Prefs {
         return c.getApplicationContext().getSharedPreferences(FILE, Context.MODE_PRIVATE);
     }
 
-    /** Ricezione della navigazione dall'app goESP sul telefono. */
-    public static boolean getNavEnabled(Context c) {
-        return sp(c).getBoolean(KEY_NAV_ENABLED, false);
+    /** Dati aggiuntivi sopra il tachimetro. */
+    public static final int EXTRA_OFF = 0, EXTRA_NAV = 1, EXTRA_RADIO = 2;
+
+    /** Se mai scelto, parte da "Navigatore" solo se la vecchia opzione di navigazione era accesa. */
+    public static int getExtraData(Context c) {
+        SharedPreferences p = sp(c);
+        return p.getInt(KEY_EXTRA_DATA, p.getBoolean(KEY_NAV_ENABLED, false) ? EXTRA_NAV : EXTRA_OFF);
     }
 
-    public static void setNavEnabled(Context c, boolean enabled) {
-        sp(c).edit().putBoolean(KEY_NAV_ENABLED, enabled).apply();
+    public static void setExtraData(Context c, int mode) {
+        sp(c).edit().putInt(KEY_EXTRA_DATA, mode).apply();
+    }
+
+    /** Ricezione della navigazione dall'app goESP sul telefono: serve solo con i dati aggiuntivi su "Navigatore". */
+    public static boolean getNavEnabled(Context c) {
+        return getExtraData(c) == EXTRA_NAV;
     }
 
     /** OBD attivo; se mai impostato, attivo solo se era già stato scelto un adattatore. */
@@ -113,24 +119,6 @@ public final class Prefs {
 
     public static void setShiftRpm(Context c, int rpm) {
         sp(c).edit().putInt(KEY_SHIFT_RPM, rpm).apply();
-    }
-
-    /** Mostra i quattro dati (acqua, batteria, olio, carburante) con le linee che partono dall'auto. */
-    public static boolean getCarData(Context c) {
-        return sp(c).getBoolean(KEY_CAR_DATA, true);
-    }
-
-    public static void setCarData(Context c, boolean on) {
-        sp(c).edit().putBoolean(KEY_CAR_DATA, on).apply();
-    }
-
-    /** Barra di luci sotto data e ora che si accende con i giri; spenta resta grigia, come a giri zero. */
-    public static boolean getShiftLights(Context c) {
-        return sp(c).getBoolean(KEY_SHIFT_LIGHTS, true);
-    }
-
-    public static void setShiftLights(Context c, boolean on) {
-        sp(c).edit().putBoolean(KEY_SHIFT_LIGHTS, on).apply();
     }
 
     /** Dati finti al posto di quelli dell'auto, per provare la grafica senza adattatore OBD. */

@@ -13,6 +13,11 @@
             <enum name="oil" value="2" />
             <enum name="battery" value="3" />
             <enum name="fuel" value="4" />
+            <enum name="air" value="5" />
+            <enum name="engine" value="6" />
+            <enum name="pedal" value="7" />
+            <enum name="drop" value="8" />
+            <enum name="route" value="9" />
         </attr>
         <!-- valore in ambra (es. consumo istantaneo) -->
         <attr name="accent" format="boolean" />
