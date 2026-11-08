@@ -24,6 +24,10 @@ public class RadioNotificationListener extends NotificationListenerService {
         }
     }
 
+    static boolean isConnected() {
+        return instance != null;
+    }
+
     @Override
     public void onListenerConnected() {
         instance = this;

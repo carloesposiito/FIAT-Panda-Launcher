@@ -19,8 +19,9 @@ public final class Prefs {
     private static final String KEY_TRIP = "trip_state";
     private static final String KEY_PAGE = "home_page";
     private static final String KEY_OBD_ENABLED = "obd_enabled";
-    private static final String KEY_NAV_ENABLED = "nav_enabled"; // vecchia impostazione, solo come valore iniziale
-    private static final String KEY_EXTRA_DATA = "extra_data";
+    private static final String KEY_EXTRA_DATA = "extra_data"; // vecchia impostazione (0 = spento), solo come valore iniziale
+    private static final String KEY_INFO_ZONE = "info_zone";
+    private static final String KEY_INFO_PAGE = "info_page";
     private static final String KEY_DEMO = "demo_data";
     private static final String KEY_MAX_SPEED = "max_speed";
     private static final String KEY_RED_RPM = "red_rpm";
@@ -43,22 +44,23 @@ public final class Prefs {
         return c.getApplicationContext().getSharedPreferences(FILE, Context.MODE_PRIVATE);
     }
 
-    /** Dati aggiuntivi sopra il tachimetro. */
-    public static final int EXTRA_OFF = 0, EXTRA_NAV = 1, EXTRA_RADIO = 2;
-
-    /** Se mai scelto, parte da "Navigatore" solo se la vecchia opzione di navigazione era accesa. */
-    public static int getExtraData(Context c) {
+    /** Zona info sopra il tachimetro (radio, navigazione, dettagli navigazione); se mai scelta, resta spenta solo se lo era la vecchia opzione. */
+    public static boolean getInfoZone(Context c) {
         SharedPreferences p = sp(c);
-        return p.getInt(KEY_EXTRA_DATA, p.getBoolean(KEY_NAV_ENABLED, false) ? EXTRA_NAV : EXTRA_OFF);
+        return p.getBoolean(KEY_INFO_ZONE, p.getInt(KEY_EXTRA_DATA, 1) != 0);
     }
 
-    public static void setExtraData(Context c, int mode) {
-        sp(c).edit().putInt(KEY_EXTRA_DATA, mode).apply();
+    public static void setInfoZone(Context c, boolean on) {
+        sp(c).edit().putBoolean(KEY_INFO_ZONE, on).apply();
     }
 
-    /** Ricezione della navigazione dall'app goESP sul telefono: serve solo con i dati aggiuntivi su "Navigatore". */
-    public static boolean getNavEnabled(Context c) {
-        return getExtraData(c) == EXTRA_NAV;
+    /** Ultima mini pagina vista nella zona info (0 radio, 1 navigazione, 2 dettagli navigazione). */
+    public static int getInfoPage(Context c) {
+        return sp(c).getInt(KEY_INFO_PAGE, 0);
+    }
+
+    public static void setInfoPage(Context c, int page) {
+        sp(c).edit().putInt(KEY_INFO_PAGE, page).apply();
     }
 
     /** OBD attivo; se mai impostato, attivo solo se era già stato scelto un adattatore. */

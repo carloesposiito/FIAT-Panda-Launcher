@@ -23,6 +23,8 @@
     <string name="page_car">Auto</string>
 
     <!-- navigazione -->
+    <string name="nav_arrival_label">Arrivo</string>
+    <string name="nav_remaining_label">Rimanente</string>
     <string name="nav_idle_title">Nessuna navigazione</string>
 
     <!-- avvisi -->
@@ -91,9 +93,10 @@
     <string name="pref_obd_none">Nessun adattatore</string>
     <string name="pref_obd_no_devices">Nessun dispositivo Bluetooth associato.</string>
     <string name="pref_extra_title">Dati aggiuntivi</string>
-    <string name="pref_extra_off">Disattivato</string>
-    <string name="pref_extra_nav">Navigatore (goESP)</string>
-    <string name="pref_extra_radio">Radio</string>
+    <string name="pref_extra_show">Mostra radio e navigatore sopra il tachimetro</string>
+    <string name="pref_nav_title">Navigatore (goESP)</string>
+    <string name="pref_radio_title">Radio</string>
+    <string name="radio_playing">Radio in riproduzione</string>
     <string name="radio_idle">Radio</string>
     <string name="radio_idle_text">Nessuna stazione in ascolto</string>
     <string name="radio_title_no_access">Radio</string>

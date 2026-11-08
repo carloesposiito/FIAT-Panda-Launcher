@@ -179,28 +179,18 @@ public class SettingsActivity extends Activity {
 
     private void buildNavSection() {
         addTitle(R.string.pref_extra_title);
-        int mode = Prefs.getExtraData(this);
-        RadioGroup modes = new RadioGroup(this);
-        int[] values = {Prefs.EXTRA_OFF, Prefs.EXTRA_NAV, Prefs.EXTRA_RADIO};
-        int[] labels = {R.string.pref_extra_off, R.string.pref_extra_nav, R.string.pref_extra_radio};
-        for (int i = 0; i < values.length; i++) {
-            final int value = values[i];
-            RadioButton rb = radio(getString(labels[i]));
-            modes.addView(rb);
-            rb.setChecked(value == mode);
-            rb.setOnClickListener(v -> {
-                Prefs.setExtraData(this, value);
-                if (value == Prefs.EXTRA_NAV && !BluetoothPermissions.canAdvertise(this)) {
-                    requestPermissions(BluetoothPermissions.runtimePermissions(), REQUEST_BT);
-                }
-                build();
-            });
-        }
-        content.addView(modes);
-        if (mode == Prefs.EXTRA_RADIO) {
+        boolean on = Prefs.getInfoZone(this);
+        addSwitch(R.string.pref_extra_show, on, checked -> {
+            Prefs.setInfoZone(this, checked);
+            if (checked && !BluetoothPermissions.canAdvertise(this)) {
+                requestPermissions(BluetoothPermissions.runtimePermissions(), REQUEST_BT);
+            }
+            build();
+        });
+        if (on) {
+            addSubtitle(R.string.pref_radio_title);
             buildRadioAccess();
-        }
-        if (mode == Prefs.EXTRA_NAV) {
+            addSubtitle(R.string.pref_nav_title);
             NavReceiver.State s = NavReceiver.get(this).state();
             String text;
             int color = R.color.muted;

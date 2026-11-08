@@ -87,14 +87,16 @@ public class LauncherActivity extends Activity
     // navigazione (goESP)
     private NavReceiver nav;
     // sezione di navigazione sulla Home, sopra il tachimetro
-    private View homeExtraBlock, homeNavBlock, homeRadioBlock;
+    private View homeExtraBlock, homeNavBlock, homeRadioBlock, homeNavMoreBlock;
+    private LinearLayout infoDots;
+    private int infoPage; // zona info: 0 radio, 1 navigazione, 2 dettagli navigazione
     private ImageView homeRadioArt;
     private TextView homeRadioTitle, homeRadioText;
     private it.panda.launcher.radio.RadioWatcher radio;
     private ImageView homeNavArrow;
     private TextView homeNavDistance, homeNavText;
     private String homeNavArrowShown;
-    private MetricCellView homeNavTime, homeNavArrival;
+    private TextView homeNavTime, homeNavArrival;
 
     // dati ai lati della foto dell'auto
 
@@ -331,6 +333,14 @@ public class LauncherActivity extends Activity
                 if (horizontal && fromPages && Math.abs(vx) > 300 * d) {
                     // dita verso sinistra = pagina successiva
                     int dir = dx < 0 ? 1 : -1;
+                    if (inInfoZone(e1.getRawX(), e1.getRawY())) {
+                        // lo scorrimento partito dalla zona info cambia mini pagina, senza girare in tondo
+                        int nextInfo = infoPage + dir;
+                        if (nextInfo >= 0 && nextInfo < INFO_PAGES) {
+                            showInfoPage(nextInfo, dir);
+                        }
+                        return true;
+                    }
                     showPage(step(dir), dir);
                     return true;
                 }
@@ -357,12 +367,10 @@ public class LauncherActivity extends Activity
      */
     private void applyAvailability() {
         obdEnabled = Prefs.getObdEnabled(this);
-        navEnabled = Prefs.getNavEnabled(this);
-        int extra = Prefs.getExtraData(this); // la sezione sopra il tachimetro: navigazione o radio
-        boolean radioEnabled = extra == Prefs.EXTRA_RADIO;
-        homeExtraBlock.setVisibility(extra == Prefs.EXTRA_OFF ? View.GONE : View.VISIBLE);
-        homeNavBlock.setVisibility(navEnabled ? View.VISIBLE : View.GONE);
-        homeRadioBlock.setVisibility(radioEnabled ? View.VISIBLE : View.GONE);
+        boolean zone = Prefs.getInfoZone(this); // zona sopra il tachimetro: radio, navigazione, dettagli navigazione
+        navEnabled = zone;
+        boolean radioEnabled = zone;
+        homeExtraBlock.setVisibility(zone ? View.VISIBLE : View.GONE);
         if (!obdEnabled && !demo) {
             showNoLiveData();
         }
@@ -432,8 +440,55 @@ public class LauncherActivity extends Activity
         homeNavText = findViewById(R.id.home_nav_text);
         homeNavTime = findViewById(R.id.home_nav_time);
         homeNavArrival = findViewById(R.id.home_nav_arrival);
+        homeNavMoreBlock = findViewById(R.id.home_nav_more_block);
+        infoDots = findViewById(R.id.home_extra_dots);
+        float density = getResources().getDisplayMetrics().density;
+        for (int i = 0; i < INFO_PAGES; i++) {
+            View dot = new View(this);
+            dot.setBackgroundResource(R.drawable.bg_page_dot);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Math.round(8 * density), Math.round(8 * density));
+            lp.setMargins(Math.round(5 * density), 0, Math.round(5 * density), 0);
+            infoDots.addView(dot, lp);
+        }
+        infoPage = Math.max(0, Math.min(INFO_PAGES - 1, Prefs.getInfoPage(this)));
+        showInfoPage(infoPage, 0);
         nav = NavReceiver.get(this);
         nav.setListener(this);
+    }
+
+    private static final int INFO_PAGES = 3;
+
+    /** Mostra una delle tre mini pagine della zona info (dir = 1 entra da destra, -1 da sinistra, 0 senza animazione). */
+    private void showInfoPage(int next, int dir) {
+        View[] views = {homeRadioBlock, homeNavBlock, homeNavMoreBlock};
+        for (int i = 0; i < views.length; i++) {
+            views[i].animate().cancel();
+            views[i].setTranslationX(0);
+            views[i].setAlpha(1f);
+            views[i].setVisibility(i == next ? View.VISIBLE : View.GONE);
+        }
+        if (dir != 0) {
+            View in = views[next];
+            in.setAlpha(0f);
+            in.setTranslationX(getResources().getDisplayMetrics().density * 40 * dir);
+            in.animate().alpha(1f).translationX(0).setDuration(180).start();
+        }
+        infoPage = next;
+        Prefs.setInfoPage(this, next);
+        for (int i = 0; i < infoDots.getChildCount(); i++) {
+            infoDots.getChildAt(i).setSelected(i == next);
+        }
+    }
+
+    /** True se il punto (coordinate schermo) cade nella zona info visibile della Home. */
+    private boolean inInfoZone(float x, float y) {
+        if (homeExtraBlock == null || !homeExtraBlock.isShown()) {
+            return false;
+        }
+        int[] loc = new int[2];
+        homeExtraBlock.getLocationOnScreen(loc);
+        return x >= loc[0] && x <= loc[0] + homeExtraBlock.getWidth()
+                && y >= loc[1] && y <= loc[1] + homeExtraBlock.getHeight();
     }
 
     @Override
@@ -459,8 +514,8 @@ public class LauncherActivity extends Activity
             homeNavArrow.setAlpha(0.35f);
             homeNavDistance.setText(dash());
             homeNavText.setText(R.string.nav_idle_title);
-            homeNavTime.setValue(dash());
-            homeNavArrival.setValue(dash());
+            homeNavTime.setText(dash());
+            homeNavArrival.setText(dash());
             return;
         }
         homeNavArrow.setAlpha(1f);
@@ -470,8 +525,8 @@ public class LauncherActivity extends Activity
         }
         homeNavDistance.setText(d.distanceText());
         homeNavText.setText(d.direction);
-        homeNavTime.setValue(d.remainingTime.isEmpty() ? dash() : d.remainingTime);
-        homeNavArrival.setValue(d.arrival.isEmpty() ? dash() : d.arrival);
+        homeNavTime.setText(d.remainingTime.isEmpty() ? dash() : d.remainingTime);
+        homeNavArrival.setText(d.arrival.isEmpty() ? dash() : d.arrival);
     }
 
     /** Sezione radio: frequenza dalla notifica dell'app radio, oppure il segnaposto se non c'è nulla da mostrare. */
@@ -479,12 +534,16 @@ public class LauncherActivity extends Activity
         if (info == null) {
             homeRadioArt.setAlpha(0.35f);
             homeRadioTitle.setText(hasAccess ? R.string.radio_idle : R.string.radio_title_no_access);
+            homeRadioText.setVisibility(View.VISIBLE);
             homeRadioText.setText(hasAccess ? R.string.radio_idle_text : R.string.radio_no_access);
             return;
         }
         homeRadioArt.setAlpha(0.6f);
-        homeRadioTitle.setText(info.title);
-        homeRadioText.setText(info.subtitle);
+        // la frequenza sta nel testo della notifica; il titolo è solo il nome dell'app ("Radio"), si usa se manca il testo
+        boolean hasText = !info.subtitle.isEmpty();
+        homeRadioTitle.setText(hasText ? info.subtitle : info.title);
+        homeRadioText.setText(R.string.radio_playing);
+        homeRadioText.setVisibility(View.VISIBLE);
     }
 
     /** Freccia dalle immagini di goESP (assets/directions); se sconosciuta, la freccia "dritto". */
