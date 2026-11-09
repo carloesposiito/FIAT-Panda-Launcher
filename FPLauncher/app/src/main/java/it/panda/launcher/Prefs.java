@@ -17,6 +17,7 @@ public final class Prefs {
     private static final String KEY_FAVORITES = "favorite_apps";
     private static final String KEY_APP_SLOTS = "app_slots";
     private static final String KEY_RADIO_APP = "radio_app";
+    private static final String KEY_OBD_DELAY = "obd_delay_s";
     private static final String KEY_TRIP = "trip_state";
     private static final String KEY_PAGE = "home_page";
     private static final String KEY_OBD_ENABLED = "obd_enabled";
@@ -46,6 +47,15 @@ public final class Prefs {
     public static boolean getObdEnabled(Context c) {
         SharedPreferences p = sp(c);
         return p.getBoolean(KEY_OBD_ENABLED, p.getString(KEY_OBD_ADDRESS, null) != null);
+    }
+
+    /** Secondi da aspettare prima di collegarsi all'OBD (avvio, risveglio, collegamento caduto): il telefono si collega per primo. */
+    public static int getObdDelaySeconds(Context c) {
+        return sp(c).getInt(KEY_OBD_DELAY, 15);
+    }
+
+    public static void setObdDelaySeconds(Context c, int seconds) {
+        sp(c).edit().putInt(KEY_OBD_DELAY, seconds).apply();
     }
 
     /** Fondo scala del tachimetro (km/h), da far corrispondere a quello dell'auto. */

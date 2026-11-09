@@ -2,7 +2,10 @@ package it.panda.launcher.obd;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -80,6 +83,28 @@ public final class ObdManager {
     private volatile ElmConnection current;
     private Thread worker;
 
+    /** Attesa prima di collegarsi (impostazioni → Ritardo connessione): avvio, risveglio, collegamento caduto. */
+    private final ConnectDelay gate = new ConnectDelay();
+    /** Cambio adattatore dalle impostazioni: ci si ricollega subito, senza ritardo. */
+    private volatile boolean restarting;
+
+    /** Al risveglio della radio, se l'OBD non è collegato, il ritardo riparte da capo. */
+    private final BroadcastReceiver wakeReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (running && lastState != State.CONNECTED) {
+                armDelay();
+                if (worker != null) {
+                    worker.interrupt(); // sveglia l'attesa in corso, che si ricalcola
+                }
+            }
+        }
+    };
+
+    private void armDelay() {
+        gate.arm(SystemClock.elapsedRealtime(), Prefs.getObdDelaySeconds(app) * 1000L);
+    }
+
     public ObdManager(Context context) {
         this.app = context.getApplicationContext();
         trip.restore(Prefs.getTripState(app));
@@ -141,6 +166,8 @@ public final class ObdManager {
             return;
         }
         running = true;
+        armDelay();
+        app.registerReceiver(wakeReceiver, new IntentFilter(Intent.ACTION_SCREEN_ON));
         worker = new Thread(this::runLoop, "obd");
         worker.setDaemon(true);
         worker.start();
@@ -148,6 +175,11 @@ public final class ObdManager {
 
     public void stop() {
         running = false;
+        try {
+            app.unregisterReceiver(wakeReceiver);
+        } catch (IllegalArgumentException ignored) {
+            // mai registrato (stop senza start)
+        }
         saveTrip();
         ElmConnection c = current;
         if (c != null) {
@@ -171,6 +203,8 @@ public final class ObdManager {
 
     /** Da chiamare dopo aver cambiato adattatore nelle impostazioni: chiude e si ricollega. */
     public void restart() {
+        restarting = true;
+        gate.arm(SystemClock.elapsedRealtime(), 0);
         ElmConnection c = current;
         if (c != null) {
             c.close();
@@ -209,10 +243,20 @@ public final class ObdManager {
                 continue;
             }
 
+            long wait = gate.remaining(SystemClock.elapsedRealtime());
+            if (wait > 0) {
+                postState(State.CONNECTING, app.getString(R.string.obd_waiting));
+                sleepQuietly(wait);
+                continue; // dopo la pausa (o un risveglio che ha riarmato il ritardo) si ricontrolla tutto
+            }
+
+            restarting = false;
+            boolean wasConnected = false;
             postState(State.CONNECTING, Prefs.getObdName(app));
             try (ElmConnection c = ElmConnection.open(adapter.getRemoteDevice(address))) {
                 current = c;
                 Set<Integer> supported = initialize(c);
+                wasConnected = true;
                 backoff = 2000;
                 milOn = null;
                 dtcStored = null;
@@ -231,6 +275,9 @@ public final class ObdManager {
                 backoff = Math.min(backoff * 2, 30000);
             } finally {
                 current = null;
+                if (wasConnected && running && !restarting) {
+                    armDelay(); // collegamento caduto (spegnimento, standby): di nuovo prima il telefono
+                }
                 saveTrip();
             }
         }

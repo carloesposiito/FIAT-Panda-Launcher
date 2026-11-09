@@ -85,7 +85,7 @@ public class LauncherActivity extends Activity
     // radio sulla Home, sopra il tachimetro
     private View homeRadioBlock;
     private ImageView homeRadioArt;
-    private TextView homeRadioTitle, homeRadioText;
+    private TextView homeRadioTitle;
     private it.panda.launcher.radio.RadioWatcher radio;
 
     // dati ai lati della foto dell'auto
@@ -417,7 +417,6 @@ public class LauncherActivity extends Activity
         homeRadioBlock = findViewById(R.id.home_radio_block);
         homeRadioArt = findViewById(R.id.home_radio_art);
         homeRadioTitle = findViewById(R.id.home_radio_title);
-        homeRadioText = findViewById(R.id.home_radio_text);
         radio = new it.panda.launcher.radio.RadioWatcher(this, this::showRadio);
         homeRadioBlock.setOnClickListener(v -> openRadioApp());
     }
@@ -425,17 +424,9 @@ public class LauncherActivity extends Activity
     /** Sezione radio: frequenza dalla notifica dell'app radio, oppure il segnaposto se non c'è nulla da mostrare. */
     private void showRadio(it.panda.launcher.radio.RadioWatcher.Info info, boolean hasAccess) {
         String frequency = info == null ? null : it.panda.launcher.radio.RadioWatcher.frequencyOf(info);
-        if (frequency == null) {
-            homeRadioArt.setAlpha(0.35f);
-            homeRadioTitle.setText(hasAccess ? R.string.radio_idle : R.string.radio_title_no_access);
-            homeRadioText.setVisibility(View.VISIBLE);
-            homeRadioText.setText(hasAccess ? R.string.radio_idle_text : R.string.radio_no_access);
-            return;
-        }
-        homeRadioArt.setAlpha(0.6f);
-        homeRadioTitle.setText(frequency);
-        homeRadioText.setText(R.string.radio_playing);
-        homeRadioText.setVisibility(View.VISIBLE);
+        // senza frequenza (radio spenta o accesso alle notifiche mancante, che si legge nelle impostazioni) resta "Radio"
+        homeRadioArt.setAlpha(frequency == null ? 0.35f : 0.6f);
+        homeRadioTitle.setText(frequency != null ? frequency : getString(R.string.radio_idle));
     }
 
     // ================================================================ ora e data

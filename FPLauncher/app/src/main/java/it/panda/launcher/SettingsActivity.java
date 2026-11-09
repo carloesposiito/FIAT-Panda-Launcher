@@ -104,6 +104,7 @@ public class SettingsActivity extends Activity {
         });
         content.addView(use);
         if (enabled) {
+            addStepper(R.string.pref_obd_delay, Prefs.getObdDelaySeconds(this), 5, 0, 120, " s", v -> Prefs.setObdDelaySeconds(this, v));
             buildObdAdapter();
         }
     }

@@ -88,15 +88,13 @@
     <string name="pref_obd_none">Nessun adattatore</string>
     <string name="pref_obd_no_devices">Nessun dispositivo Bluetooth associato.</string>
     <string name="pref_radio_title">Radio</string>
-    <string name="radio_playing">Radio in riproduzione</string>
     <string name="radio_idle">Radio</string>
-    <string name="radio_idle_text">Nessuna stazione in ascolto</string>
-    <string name="radio_title_no_access">Radio</string>
-    <string name="radio_no_access">Consenti l\'accesso alle notifiche nelle impostazioni</string>
     <string name="pref_radio_access_on">Accesso alle notifiche: concesso</string>
     <string name="pref_radio_access_off">Accesso alle notifiche: da concedere (serve per leggere la frequenza della radio)</string>
     <string name="pref_radio_grant">Concedi accesso alle notifiche</string>
     <string name="pref_radio_app">App radio (si apre toccando la radio nella Home): %1$s</string>
+    <string name="pref_obd_delay">Ritardo connessione</string>
+    <string name="obd_waiting">attesa</string>
     <string name="pref_radio_app_none">non scelta</string>
     <string name="pref_radio_app_choose">Scegli app radio</string>
     <string name="radio_app_unset">Scegli l\'app radio nelle impostazioni</string>
