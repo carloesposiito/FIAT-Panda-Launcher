@@ -21,205 +21,65 @@
         android:orientation="vertical"
         android:paddingBottom="24dp">
 
-        <!-- navigazione (solo con "Usa navigatore" attivo): freccia a sinistra, distanza e testo a destra -->
+        <!-- radio: segnaposto a sinistra, frequenza a destra; toccando si apre l'app scelta nelle impostazioni -->
         <LinearLayout
-            android:id="@+id/home_extra_block"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:clipChildren="false"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-        <!-- tre mini pagine alte quanto la radio (96dp), una alla volta: radio, navigazione, dettagli navigazione -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="96dp"
-            android:translationY="-5dp">
-
-        <LinearLayout
-            android:id="@+id/home_nav_block"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="96dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <ImageView
-                android:id="@+id/home_nav_arrow"
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:importantForAccessibility="no"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_navigation" />
+            android:orientation="vertical">
 
             <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
+                android:id="@+id/home_radio_block"
+                android:layout_width="match_parent"
+                android:layout_height="96dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
                 android:gravity="center_vertical"
-                android:orientation="vertical">
+                android:orientation="horizontal"
+                android:translationY="-5dp">
 
-                <TextView
-                    android:id="@+id/home_nav_distance"
-                    style="@style/TileValue"
-                    android:includeFontPadding="false"
-                    android:singleLine="true"
-                    android:textColor="@color/accent"
-                    android:textSize="38sp" />
-
-                <TextView
-                    android:id="@+id/home_nav_text"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:ellipsize="end"
-                    android:maxLines="2"
-                    android:textColor="@color/text"
-                    android:textSize="18sp" />
+                <ImageView
+                    android:id="@+id/home_radio_art"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:importantForAccessibility="no"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_album" />
+    
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="80dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:gravity="top"
+                    android:orientation="vertical">
+    
+                    <TextView
+                        android:id="@+id/home_radio_title"
+                        style="@style/TileValue"
+                        android:ellipsize="end"
+                        android:includeFontPadding="false"
+                        android:singleLine="true"
+                        android:textColor="@color/accent"
+                        android:textSize="36sp" />
+    
+                    <TextView
+                        android:id="@+id/home_radio_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="2"
+                        android:textColor="@color/text"
+                        android:textSize="18sp" />
+                </LinearLayout>
             </LinearLayout>
-        </LinearLayout>
-
-        </LinearLayout>
-
-        <!-- radio: segnaposto a sinistra, frequenza (titolo e descrizione della notifica) a destra -->
-        <LinearLayout
-            android:id="@+id/home_radio_block"
-            android:layout_width="match_parent"
-            android:layout_height="96dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <ImageView
-                android:id="@+id/home_radio_art"
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:importantForAccessibility="no"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_album" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="80dp"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                android:gravity="top"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/home_radio_title"
-                    style="@style/TileValue"
-                    android:ellipsize="end"
-                    android:includeFontPadding="false"
-                    android:singleLine="true"
-                    android:textColor="@color/accent"
-                    android:textSize="36sp" />
-
-                <TextView
-                    android:id="@+id/home_radio_text"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:ellipsize="end"
-                    android:maxLines="2"
-                    android:textColor="@color/text"
-                    android:textSize="18sp" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- dettagli navigazione: arrivo e tempo rimanente su due colonne -->
-        <LinearLayout
-            android:id="@+id/home_nav_more_block"
-            android:layout_width="match_parent"
-            android:layout_height="96dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:baselineAligned="false"
-            android:orientation="horizontal"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/home_nav_arrival"
-                    style="@style/TileValue"
-                    android:gravity="center"
-                    android:includeFontPadding="false"
-                    android:singleLine="true"
-                    android:textColor="@color/accent"
-                    android:textSize="42sp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:text="@string/nav_arrival_label"
-                    android:textColor="@color/muted"
-                    android:textSize="15sp" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="1dp"
-                android:layout_height="58dp"
-                android:layout_gravity="center_vertical"
-                android:background="@color/line_strong" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/home_nav_time"
-                    style="@style/TileValue"
-                    android:gravity="center"
-                    android:includeFontPadding="false"
-                    android:singleLine="true"
-                    android:textColor="@color/accent"
-                    android:textSize="42sp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:text="@string/nav_remaining_label"
-                    android:textColor="@color/muted"
-                    android:textSize="15sp" />
-            </LinearLayout>
-        </LinearLayout>
-        </FrameLayout>
-
-        <!-- pallini della zona info -->
-        <LinearLayout
-            android:id="@+id/home_extra_dots"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:translationY="-5dp" />
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginStart="8dp"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="18dp"
             android:layout_marginEnd="8dp"
             android:layout_marginBottom="30dp"
             android:background="@drawable/bg_sep_racing" />

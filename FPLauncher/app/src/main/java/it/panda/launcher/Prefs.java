@@ -16,12 +16,10 @@ public final class Prefs {
     private static final String KEY_DISPLACEMENT_CC = "displacement_cc";
     private static final String KEY_FAVORITES = "favorite_apps";
     private static final String KEY_APP_SLOTS = "app_slots";
+    private static final String KEY_RADIO_APP = "radio_app";
     private static final String KEY_TRIP = "trip_state";
     private static final String KEY_PAGE = "home_page";
     private static final String KEY_OBD_ENABLED = "obd_enabled";
-    private static final String KEY_EXTRA_DATA = "extra_data"; // vecchia impostazione (0 = spento), solo come valore iniziale
-    private static final String KEY_INFO_ZONE = "info_zone";
-    private static final String KEY_INFO_PAGE = "info_page";
     private static final String KEY_DEMO = "demo_data";
     private static final String KEY_MAX_SPEED = "max_speed";
     private static final String KEY_RED_RPM = "red_rpm";
@@ -42,25 +40,6 @@ public final class Prefs {
 
     private static SharedPreferences sp(Context c) {
         return c.getApplicationContext().getSharedPreferences(FILE, Context.MODE_PRIVATE);
-    }
-
-    /** Zona info sopra il tachimetro (radio, navigazione, dettagli navigazione); se mai scelta, resta spenta solo se lo era la vecchia opzione. */
-    public static boolean getInfoZone(Context c) {
-        SharedPreferences p = sp(c);
-        return p.getBoolean(KEY_INFO_ZONE, p.getInt(KEY_EXTRA_DATA, 1) != 0);
-    }
-
-    public static void setInfoZone(Context c, boolean on) {
-        sp(c).edit().putBoolean(KEY_INFO_ZONE, on).apply();
-    }
-
-    /** Ultima mini pagina vista nella zona info (0 radio, 1 navigazione, 2 dettagli navigazione). */
-    public static int getInfoPage(Context c) {
-        return sp(c).getInt(KEY_INFO_PAGE, 0);
-    }
-
-    public static void setInfoPage(Context c, int page) {
-        sp(c).edit().putInt(KEY_INFO_PAGE, page).apply();
     }
 
     /** OBD attivo; se mai impostato, attivo solo se era già stato scelto un adattatore. */
@@ -222,6 +201,16 @@ public final class Prefs {
             b.append(cn.flattenToString());
         }
         sp(c).edit().putString(KEY_FAVORITES, b.toString()).apply();
+    }
+
+    /** App da aprire toccando il blocco radio della Home; null = non ancora scelta. */
+    public static ComponentName getRadioApp(Context c) {
+        String raw = sp(c).getString(KEY_RADIO_APP, null);
+        return raw == null ? null : ComponentName.unflattenFromString(raw);
+    }
+
+    public static void setRadioApp(Context c, ComponentName app) {
+        sp(c).edit().putString(KEY_RADIO_APP, app == null ? null : app.flattenToString()).apply();
     }
 
     /** Quante icone entrano nella colonna (lo calcola la Home, lo mostra l'editor). 0 = non ancora noto. */

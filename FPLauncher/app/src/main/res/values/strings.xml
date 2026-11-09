@@ -22,11 +22,6 @@
     <!-- pagine -->
     <string name="page_car">Auto</string>
 
-    <!-- navigazione -->
-    <string name="nav_arrival_label">Arrivo</string>
-    <string name="nav_remaining_label">Rimanente</string>
-    <string name="nav_idle_title">Nessuna navigazione</string>
-
     <!-- avvisi -->
     <string name="pref_gauges_title">Tachimetro e giri</string>
     <string name="pref_max_speed">Fondo scala tachimetro</string>
@@ -92,9 +87,6 @@
     <string name="pref_obd_adapter">Adattatore</string>
     <string name="pref_obd_none">Nessun adattatore</string>
     <string name="pref_obd_no_devices">Nessun dispositivo Bluetooth associato.</string>
-    <string name="pref_extra_title">Dati aggiuntivi</string>
-    <string name="pref_extra_show">Mostra radio e navigatore sopra il tachimetro</string>
-    <string name="pref_nav_title">Navigatore (goESP)</string>
     <string name="pref_radio_title">Radio</string>
     <string name="radio_playing">Radio in riproduzione</string>
     <string name="radio_idle">Radio</string>
@@ -104,17 +96,11 @@
     <string name="pref_radio_access_on">Accesso alle notifiche: concesso</string>
     <string name="pref_radio_access_off">Accesso alle notifiche: da concedere (serve per leggere la frequenza della radio)</string>
     <string name="pref_radio_grant">Concedi accesso alle notifiche</string>
+    <string name="pref_radio_app">App radio (si apre toccando la radio nella Home): %1$s</string>
+    <string name="pref_radio_app_none">non scelta</string>
+    <string name="pref_radio_app_choose">Scegli app radio</string>
+    <string name="radio_app_unset">Scegli l\'app radio nelle impostazioni</string>
     <string name="pref_radio_unavailable">Impostazioni di sistema non disponibili su questa autoradio</string>
-    <string name="pref_nav_status">Stato: %1$s</string>
-    <string name="pref_nav_state_off">spenta</string>
-    <string name="pref_nav_state_waiting">in attesa del telefono</string>
-    <string name="pref_nav_state_starting">avvio…</string>
-    <string name="pref_nav_state_connected">collegato a %1$s</string>
-    <string name="pref_nav_state_unsupported">l\'autoradio non supporta il Bluetooth LE periferico</string>
-    <string name="pref_nav_state_bt_off">Bluetooth spento</string>
-    <string name="pref_nav_state_no_bt">Bluetooth assente</string>
-    <string name="pref_nav_state_permission">manca il permesso Bluetooth</string>
-    <string name="pref_nav_state_error">errore Bluetooth</string>
     <string name="pref_engine_title">Modello</string>
     <string name="pref_engine_12">Fiat Panda 169 · AXF1A 08B · 1242 cm³</string>
     <string name="pref_calib">Taratura automatica dei consumi</string>

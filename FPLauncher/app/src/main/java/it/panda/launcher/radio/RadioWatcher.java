@@ -40,6 +40,29 @@ public final class RadioWatcher {
         void onRadio(Info info, boolean hasAccess);
     }
 
+    /** Frequenza FM (88.5, 98,5 MHz) o AM (999 kHz), con l'unità se presente. */
+    private static final java.util.regex.Pattern FREQUENCY = java.util.regex.Pattern.compile(
+            "\\d{2,3}(?:[.,]\\d{1,2})?\\s*MHz|\\d{3,4}\\s*kHz|\\d{2,3}[.,]\\d{1,2}",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Solo la frequenza ("88.5Mhz") dal testo della notifica, senza prefissi come "In ascolto: ".
+     * Null se la notifica non ne contiene una: la radio è spenta (es. "Clicca per aprire").
+     */
+    public static String frequencyOf(Info info) {
+        return frequencyOf(info.subtitle, info.title);
+    }
+
+    static String frequencyOf(String... texts) {
+        for (String t : texts) {
+            java.util.regex.Matcher m = FREQUENCY.matcher(t);
+            if (m.find()) {
+                return m.group().trim();
+            }
+        }
+        return null;
+    }
+
     private static volatile RadioWatcher current;
 
     private final Context context;

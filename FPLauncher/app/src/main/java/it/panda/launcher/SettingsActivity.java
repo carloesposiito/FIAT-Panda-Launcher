@@ -26,7 +26,6 @@ import java.util.Set;
 import it.panda.launcher.apps.AppEntry;
 import it.panda.launcher.apps.AppLoader;
 import it.panda.launcher.obd.BluetoothPermissions;
-import it.panda.launcher.nav.NavReceiver;
 import it.panda.launcher.obd.ObdManager;
 
 /**
@@ -66,7 +65,7 @@ public class SettingsActivity extends Activity {
         content.removeAllViews();
         buildAppsSection();
         buildDataSection();
-        buildNavSection();
+        buildRadioSection();
         buildCarSection();
         buildDevSection();
     }
@@ -175,67 +174,11 @@ public class SettingsActivity extends Activity {
         }
     }
 
-    // ---------------------------------------------------------------- navigazione (goESP)
+    // ---------------------------------------------------------------- radio
 
-    private void buildNavSection() {
-        addTitle(R.string.pref_extra_title);
-        boolean on = Prefs.getInfoZone(this);
-        addSwitch(R.string.pref_extra_show, on, checked -> {
-            Prefs.setInfoZone(this, checked);
-            if (checked && !BluetoothPermissions.canAdvertise(this)) {
-                requestPermissions(BluetoothPermissions.runtimePermissions(), REQUEST_BT);
-            }
-            build();
-        });
-        if (on) {
-            addSubtitle(R.string.pref_radio_title);
-            buildRadioAccess();
-            addSubtitle(R.string.pref_nav_title);
-            NavReceiver.State s = NavReceiver.get(this).state();
-            String text;
-            int color = R.color.muted;
-            switch (s) {
-                case CONNECTED:
-                    text = getString(R.string.pref_nav_state_connected, String.valueOf(NavReceiver.get(this).deviceName()));
-                    color = R.color.ok;
-                    break;
-                case WAITING:
-                    text = getString(R.string.pref_nav_state_waiting);
-                    break;
-                case STARTING:
-                    text = getString(R.string.pref_nav_state_starting);
-                    break;
-                case UNSUPPORTED:
-                    text = getString(R.string.pref_nav_state_unsupported);
-                    color = R.color.crit;
-                    break;
-                case BT_OFF:
-                    text = getString(R.string.pref_nav_state_bt_off);
-                    color = R.color.crit;
-                    break;
-                case NO_BLUETOOTH:
-                    text = getString(R.string.pref_nav_state_no_bt);
-                    color = R.color.crit;
-                    break;
-                case NO_PERMISSION:
-                    text = getString(R.string.pref_nav_state_permission);
-                    color = R.color.crit;
-                    break;
-                case ERROR:
-                    text = getString(R.string.pref_nav_state_error);
-                    color = R.color.crit;
-                    break;
-                default:
-                    text = getString(R.string.pref_nav_state_off);
-                    break;
-            }
-            TextView status = addHintText(getString(R.string.pref_nav_status, text));
-            status.setTextColor(getColor(color));
-            if (s == NavReceiver.State.NO_PERMISSION) {
-                Button ask = addButton(R.string.pref_grant_permission);
-                ask.setOnClickListener(v -> requestPermissions(BluetoothPermissions.runtimePermissions(), REQUEST_BT));
-            }
-        }
+    private void buildRadioSection() {
+        addTitle(R.string.pref_radio_title);
+        buildRadioAccess();
     }
 
     /** Per la radio serve l'accesso alle notifiche, che si concede dalle impostazioni di sistema. */
@@ -243,6 +186,7 @@ public class SettingsActivity extends Activity {
         boolean granted = it.panda.launcher.radio.RadioWatcher.hasAccess(this);
         TextView status = addHintText(getString(granted ? R.string.pref_radio_access_on : R.string.pref_radio_access_off));
         status.setTextColor(getColor(granted ? R.color.ok : R.color.muted));
+        buildRadioApp();
         if (!granted) {
             Button grant = addButton(R.string.pref_radio_grant);
             grant.setOnClickListener(v -> {
@@ -253,6 +197,40 @@ public class SettingsActivity extends Activity {
                 }
             });
         }
+    }
+
+    /** App che si apre toccando la radio nella Home: si sceglie qui perché le autoradio cinesi hanno pacchetti diversi. */
+    private void buildRadioApp() {
+        android.content.ComponentName chosen = Prefs.getRadioApp(this);
+        String name = getString(R.string.pref_radio_app_none);
+        if (chosen != null) {
+            try {
+                name = String.valueOf(getPackageManager().getActivityInfo(chosen, 0).loadLabel(getPackageManager()));
+            } catch (android.content.pm.PackageManager.NameNotFoundException e) {
+                name = chosen.getPackageName(); // disinstallata: si mostra il pacchetto
+            }
+        }
+        addHintText(getString(R.string.pref_radio_app, name));
+        Button pick = addButton(R.string.pref_radio_app_choose);
+        pick.setOnClickListener(v -> {
+            if (appLoader == null) {
+                appLoader = new AppLoader(this);
+            }
+            appLoader.load(apps -> {
+                String[] labels = new String[apps.size()];
+                for (int i = 0; i < labels.length; i++) {
+                    labels[i] = apps.get(i).label + "  ·  " + apps.get(i).component.getPackageName();
+                }
+                new android.app.AlertDialog.Builder(this)
+                        .setTitle(R.string.pref_radio_app_choose)
+                        .setItems(labels, (d, which) -> {
+                            Prefs.setRadioApp(this, apps.get(which).component);
+                            build();
+                        })
+                        .setNegativeButton(R.string.cancel, null)
+                        .show();
+            });
+        });
     }
 
     // ---------------------------------------------------------------- motore

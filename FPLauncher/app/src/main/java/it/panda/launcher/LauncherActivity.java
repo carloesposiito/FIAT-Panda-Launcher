@@ -38,8 +38,6 @@ import java.util.Map;
 
 import it.panda.launcher.apps.AppEntry;
 import it.panda.launcher.apps.AppLoader;
-import it.panda.launcher.nav.NavData;
-import it.panda.launcher.nav.NavReceiver;
 import it.panda.launcher.obd.BluetoothPermissions;
 import it.panda.launcher.obd.Diagnostics;
 import it.panda.launcher.obd.ObdManager;
@@ -52,10 +50,10 @@ import it.panda.launcher.ui.MetricCellView;
 
 /**
  * Schermata Home: app e volume a sinistra; a destra la barra in alto (ora) e le pagine da scorrere
- * con le frecce in basso: auto (foto con i dati OBD ai lati), consumi, navigazione, avvisi.
+ * con le frecce in basso: auto (foto con i dati OBD ai lati), consumi, avvisi.
  */
 public class LauncherActivity extends Activity
-        implements ObdManager.Listener, NavReceiver.Listener {
+        implements ObdManager.Listener {
 
     private static final int REQUEST_BT = 1;
     /** Da questa frazione del fondo scala i giri sono "fuori giri" (6000 su 7000). */
@@ -78,25 +76,17 @@ public class LauncherActivity extends Activity
     private GestureDetector swipe;
     private LinearLayout pageDots;
     private boolean activityResumed;
-    private boolean obdEnabled, navEnabled;
+    private boolean obdEnabled;
     // dati dimostrativi (impostazioni → Schermata)
     private boolean demo;
     private final Handler demoHandler = new Handler(Looper.getMainLooper());
     private long demoStartMs;
 
-    // navigazione (goESP)
-    private NavReceiver nav;
-    // sezione di navigazione sulla Home, sopra il tachimetro
-    private View homeExtraBlock, homeNavBlock, homeRadioBlock, homeNavMoreBlock;
-    private LinearLayout infoDots;
-    private int infoPage; // zona info: 0 radio, 1 navigazione, 2 dettagli navigazione
+    // radio sulla Home, sopra il tachimetro
+    private View homeRadioBlock;
     private ImageView homeRadioArt;
     private TextView homeRadioTitle, homeRadioText;
     private it.panda.launcher.radio.RadioWatcher radio;
-    private ImageView homeNavArrow;
-    private TextView homeNavDistance, homeNavText;
-    private String homeNavArrowShown;
-    private TextView homeNavTime, homeNavArrival;
 
     // dati ai lati della foto dell'auto
 
@@ -148,12 +138,12 @@ public class LauncherActivity extends Activity
         setupClock();
         setupData();
         setupTrip();
-        setupNav();
+        setupRadio();
         setupPages();
 
         obd = new ObdManager(this);
         obd.setListener(this);
-        if (!BluetoothPermissions.canAdvertise(this)) {
+        if (!BluetoothPermissions.canConnect(this)) {
             requestPermissions(BluetoothPermissions.runtimePermissions(), REQUEST_BT);
         }
         obd.start();
@@ -250,9 +240,23 @@ public class LauncherActivity extends Activity
     }
 
     private void openApp(AppEntry app) {
+        openComponent(app.component);
+    }
+
+    /** Apre l'app scelta nelle impostazioni per la radio; se manca, avvisa dove sceglierla. */
+    private void openRadioApp() {
+        ComponentName radioApp = Prefs.getRadioApp(this);
+        if (radioApp == null) {
+            Toast.makeText(this, R.string.radio_app_unset, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        openComponent(radioApp);
+    }
+
+    private void openComponent(ComponentName component) {
         Intent i = new Intent(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LAUNCHER)
-                .setComponent(app.component)
+                .setComponent(component)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         try {
             startActivity(i);
@@ -333,14 +337,6 @@ public class LauncherActivity extends Activity
                 if (horizontal && fromPages && Math.abs(vx) > 300 * d) {
                     // dita verso sinistra = pagina successiva
                     int dir = dx < 0 ? 1 : -1;
-                    if (inInfoZone(e1.getRawX(), e1.getRawY())) {
-                        // lo scorrimento partito dalla zona info cambia mini pagina, senza girare in tondo
-                        int nextInfo = infoPage + dir;
-                        if (nextInfo >= 0 && nextInfo < INFO_PAGES) {
-                            showInfoPage(nextInfo, dir);
-                        }
-                        return true;
-                    }
                     showPage(step(dir), dir);
                     return true;
                 }
@@ -367,10 +363,6 @@ public class LauncherActivity extends Activity
      */
     private void applyAvailability() {
         obdEnabled = Prefs.getObdEnabled(this);
-        boolean zone = Prefs.getInfoZone(this); // zona sopra il tachimetro: radio, navigazione, dettagli navigazione
-        navEnabled = zone;
-        boolean radioEnabled = zone;
-        homeExtraBlock.setVisibility(zone ? View.VISIBLE : View.GONE);
         if (!obdEnabled && !demo) {
             showNoLiveData();
         }
@@ -381,13 +373,7 @@ public class LauncherActivity extends Activity
             showTrip(obd.tripSummary());
         }
 
-        // ricevitore della navigazione acceso/spento come da impostazioni
-        if (navEnabled) {
-            nav.start();
-        } else {
-            nav.stop();
-        }
-        if (radioEnabled && !demo) {
+        if (!demo) {
             radio.start();
         } else {
             radio.stop();
@@ -425,113 +411,21 @@ public class LauncherActivity extends Activity
         }
     }
 
-    // ================================================================ navigazione (goESP)
+    // ================================================================ radio
 
-    private void setupNav() {
-        homeExtraBlock = findViewById(R.id.home_extra_block);
-        homeNavBlock = findViewById(R.id.home_nav_block);
+    private void setupRadio() {
         homeRadioBlock = findViewById(R.id.home_radio_block);
         homeRadioArt = findViewById(R.id.home_radio_art);
         homeRadioTitle = findViewById(R.id.home_radio_title);
         homeRadioText = findViewById(R.id.home_radio_text);
         radio = new it.panda.launcher.radio.RadioWatcher(this, this::showRadio);
-        homeNavArrow = findViewById(R.id.home_nav_arrow);
-        homeNavDistance = findViewById(R.id.home_nav_distance);
-        homeNavText = findViewById(R.id.home_nav_text);
-        homeNavTime = findViewById(R.id.home_nav_time);
-        homeNavArrival = findViewById(R.id.home_nav_arrival);
-        homeNavMoreBlock = findViewById(R.id.home_nav_more_block);
-        infoDots = findViewById(R.id.home_extra_dots);
-        float density = getResources().getDisplayMetrics().density;
-        for (int i = 0; i < INFO_PAGES; i++) {
-            View dot = new View(this);
-            dot.setBackgroundResource(R.drawable.bg_page_dot);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Math.round(8 * density), Math.round(8 * density));
-            lp.setMargins(Math.round(5 * density), 0, Math.round(5 * density), 0);
-            infoDots.addView(dot, lp);
-        }
-        infoPage = Math.max(0, Math.min(INFO_PAGES - 1, Prefs.getInfoPage(this)));
-        showInfoPage(infoPage, 0);
-        nav = NavReceiver.get(this);
-        nav.setListener(this);
-    }
-
-    private static final int INFO_PAGES = 3;
-
-    /** Mostra una delle tre mini pagine della zona info (dir = 1 entra da destra, -1 da sinistra, 0 senza animazione). */
-    private void showInfoPage(int next, int dir) {
-        View[] views = {homeRadioBlock, homeNavBlock, homeNavMoreBlock};
-        for (int i = 0; i < views.length; i++) {
-            views[i].animate().cancel();
-            views[i].setTranslationX(0);
-            views[i].setAlpha(1f);
-            views[i].setVisibility(i == next ? View.VISIBLE : View.GONE);
-        }
-        if (dir != 0) {
-            View in = views[next];
-            in.setAlpha(0f);
-            in.setTranslationX(getResources().getDisplayMetrics().density * 40 * dir);
-            in.animate().alpha(1f).translationX(0).setDuration(180).start();
-        }
-        infoPage = next;
-        Prefs.setInfoPage(this, next);
-        for (int i = 0; i < infoDots.getChildCount(); i++) {
-            infoDots.getChildAt(i).setSelected(i == next);
-        }
-    }
-
-    /** True se il punto (coordinate schermo) cade nella zona info visibile della Home. */
-    private boolean inInfoZone(float x, float y) {
-        if (homeExtraBlock == null || !homeExtraBlock.isShown()) {
-            return false;
-        }
-        int[] loc = new int[2];
-        homeExtraBlock.getLocationOnScreen(loc);
-        return x >= loc[0] && x <= loc[0] + homeExtraBlock.getWidth()
-                && y >= loc[1] && y <= loc[1] + homeExtraBlock.getHeight();
-    }
-
-    @Override
-    public void onNavState(NavReceiver.State state, String deviceName) {
-        onNavData(nav.last());
-    }
-
-    @Override
-    public void onNavData(NavData d) {
-        if (!demo) {
-            showNav(d);
-        }
-    }
-
-    /** Sezione di navigazione sopra il tachimetro della Home: freccia, distanza e testo; senza indicazione, stato del collegamento. */
-    private void showNav(NavData d) {
-        if (homeNavBlock == null) {
-            return;
-        }
-        if (d == null) {
-            homeNavArrowShown = null;
-            homeNavArrow.setImageResource(R.drawable.ic_navigation);
-            homeNavArrow.setAlpha(0.35f);
-            homeNavDistance.setText(dash());
-            homeNavText.setText(R.string.nav_idle_title);
-            homeNavTime.setText(dash());
-            homeNavArrival.setText(dash());
-            return;
-        }
-        homeNavArrow.setAlpha(1f);
-        if (!d.image.equals(homeNavArrowShown)) {
-            homeNavArrowShown = d.image;
-            homeNavArrow.setImageBitmap(loadArrow(d.image));
-        }
-        homeNavDistance.setText(d.distanceText());
-        homeNavText.setText(d.direction);
-        homeNavTime.setText(d.remainingTime.isEmpty() ? dash() : d.remainingTime);
-        homeNavArrival.setText(d.arrival.isEmpty() ? dash() : d.arrival);
+        homeRadioBlock.setOnClickListener(v -> openRadioApp());
     }
 
     /** Sezione radio: frequenza dalla notifica dell'app radio, oppure il segnaposto se non c'è nulla da mostrare. */
     private void showRadio(it.panda.launcher.radio.RadioWatcher.Info info, boolean hasAccess) {
-        if (info == null) {
+        String frequency = info == null ? null : it.panda.launcher.radio.RadioWatcher.frequencyOf(info);
+        if (frequency == null) {
             homeRadioArt.setAlpha(0.35f);
             homeRadioTitle.setText(hasAccess ? R.string.radio_idle : R.string.radio_title_no_access);
             homeRadioText.setVisibility(View.VISIBLE);
@@ -539,26 +433,9 @@ public class LauncherActivity extends Activity
             return;
         }
         homeRadioArt.setAlpha(0.6f);
-        // la frequenza sta nel testo della notifica; il titolo è solo il nome dell'app ("Radio"), si usa se manca il testo
-        boolean hasText = !info.subtitle.isEmpty();
-        homeRadioTitle.setText(hasText ? info.subtitle : info.title);
+        homeRadioTitle.setText(frequency);
         homeRadioText.setText(R.string.radio_playing);
         homeRadioText.setVisibility(View.VISIBLE);
-    }
-
-    /** Freccia dalle immagini di goESP (assets/directions); se sconosciuta, la freccia "dritto". */
-    private android.graphics.Bitmap loadArrow(String name) {
-        for (String n : new String[]{name, "CONTINUE_STRAIGHT"}) {
-            if (n == null || n.isEmpty() || n.contains("/") || n.contains("..")) {
-                continue;
-            }
-            try (java.io.InputStream in = getAssets().open("directions/" + n + ".png")) {
-                return android.graphics.BitmapFactory.decodeStream(in);
-            } catch (java.io.IOException ignored) {
-                // prova la successiva
-            }
-        }
-        return null;
     }
 
     // ================================================================ ora e data
@@ -842,7 +719,6 @@ public class LauncherActivity extends Activity
         public void run() {
             double t = (SystemClock.elapsedRealtime() - demoStartMs) / 1000.0;
             showSnapshot(demoSnapshot(t, demoFaults));
-            showNav(demoNav(t));
             showRadio(new it.panda.launcher.radio.RadioWatcher.Info("FM 98,5 MHz", "Radio Deejay"), true);
             demoHandler.postDelayed(this, 500);
         }
@@ -865,7 +741,6 @@ public class LauncherActivity extends Activity
         demo = false;
         demoFaults = false;
         demoHandler.removeCallbacks(demoTick);
-        showNav(nav.last());
         obdConnected = false;
         diagReadsSeen = 0;
         lastSnapshot = null;
@@ -905,20 +780,6 @@ public class LauncherActivity extends Activity
             s.speedHistory.add(Math.max(0, 130 * w - 15));
         }
         return s;
-    }
-
-    /** Indicazione finta: la distanza scende e ogni 20 secondi cambia svolta. */
-    private static NavData demoNav(double t) {
-        String[][] steps = {
-                {"Via Roma verso Piazza Duomo", "ROTATORY_RIGHT"},
-                {"Strada Provinciale 123 verso San Giovanni in Persiceto Centro", "CONTINUE_LEFT"},
-                {"Viale dei Mille", "SLIGHT_RIGHT"},
-        };
-        int i = (int) (t / 20) % steps.length;
-        int meters = 50 * (int) ((1000 - (t % 20) * 45) / 50);
-        double remainingKm = Math.max(1, 18 - t * 0.01);
-        return NavData.parse(steps[i][0] + "#" + steps[i][1] + "#" + meters + "#m#17:39#"
-                + String.format(IT, "%.0f km", remainingKm) + "#22 min");
     }
 
     /** Valore riportato tra 0 e 1 per riempire le icone. */
@@ -1140,8 +1001,6 @@ public class LauncherActivity extends Activity
         unregisterReceiver(timeReceiver);
         appLoader.shutdown();
         obd.stop();
-        nav.setListener(null);
-        nav.stop();
         radio.stop();
         super.onDestroy();
     }
@@ -1170,10 +1029,6 @@ public class LauncherActivity extends Activity
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_BT) {
             obd.restart();
-            if (navEnabled) {
-                nav.stop();
-                nav.start();
-            }
         }
     }
 }

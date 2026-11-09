@@ -22,16 +22,7 @@ public final class BluetoothPermissions {
         return c.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED;
     }
 
-    /** Per la navigazione goESP: farsi trovare via Bluetooth LE (da Android 12 serve BLUETOOTH_ADVERTISE). */
-    public static boolean canAdvertise(Context c) {
-        if (!needsRuntimePermission()) {
-            return true;
-        }
-        return canConnect(c)
-                && c.checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE) == PackageManager.PERMISSION_GRANTED;
-    }
-
     public static String[] runtimePermissions() {
-        return new String[]{Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_ADVERTISE};
+        return new String[]{Manifest.permission.BLUETOOTH_CONNECT};
     }
 }
