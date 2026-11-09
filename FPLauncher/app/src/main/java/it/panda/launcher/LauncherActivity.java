@@ -95,6 +95,7 @@ public class LauncherActivity extends Activity
 
     // dati OBD
     private ObdManager obd;
+    private String carImagesKey;
     private String obdAddressAtPause;
     private boolean pausedOnce;
     private CarPage[] carPages;
@@ -462,6 +463,26 @@ public class LauncherActivity extends Activity
     }
 
     // ================================================================ dati motore
+
+    /** Immagini dell'auto attiva: quelle importate, altrimenti le originali della Panda. Si ricaricano solo se cambiano. */
+    private void applyCarImages() {
+        String id = CarStore.activeId(this);
+        String key = id + "/" + CarImages.stamp(this, id);
+        if (key.equals(carImagesKey)) {
+            return;
+        }
+        carImagesKey = key;
+        showCarImage(findViewById(R.id.car_image), CarImages.load(this, id, CarImages.Kind.TOP), R.drawable.car_panda_top);
+        showCarImage(findViewById(R.id.car_image_data), CarImages.load(this, id, CarImages.Kind.SIDE), R.drawable.car_panda);
+    }
+
+    private static void showCarImage(ImageView view, android.graphics.Bitmap custom, int fallback) {
+        if (custom != null) {
+            view.setImageBitmap(custom);
+        } else {
+            view.setImageResource(fallback);
+        }
+    }
 
     private void setupData() {
         carPages = new CarPage[]{
@@ -960,13 +981,19 @@ public class LauncherActivity extends Activity
         }
         updateDate();
         fillAppColumn(); // le app scelte possono essere cambiate nelle impostazioni
+        // se nelle impostazioni è stata scelta un'altra auto: suoi trip, taratura e adattatore, e le sue immagini
+        boolean carChanged = obd.carChanged();
+        if (carChanged) {
+            obd.reloadCar();
+        }
+        applyCarImages();
         lastSpeedHistory = obd.speedHistory();
         showTrip(obd.tripSummary());
         // se nelle impostazioni è stato scelto un altro adattatore, ricollegati
         String address = Prefs.getObdAddress(this);
         boolean wasEnabled = obdEnabled;
         applyAvailability();
-        if (pausedOnce && (!java.util.Objects.equals(obdAddressAtPause, address) || wasEnabled != obdEnabled)) {
+        if (pausedOnce && !carChanged && (!java.util.Objects.equals(obdAddressAtPause, address) || wasEnabled != obdEnabled)) {
             obd.restart();
         }
     }

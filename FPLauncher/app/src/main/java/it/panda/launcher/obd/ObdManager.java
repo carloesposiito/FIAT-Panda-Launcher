@@ -105,11 +105,35 @@ public final class ObdManager {
         gate.arm(SystemClock.elapsedRealtime(), Prefs.getObdDelaySeconds(app) * 1000L);
     }
 
+    /** Auto a cui appartengono trip e taratura tenuti in memoria (può non essere più quella attiva finché non si ricarica). */
+    private volatile String carId;
+
     public ObdManager(Context context) {
         this.app = context.getApplicationContext();
-        trip.restore(Prefs.getTripState(app));
-        calibrationEpoch = Prefs.getCalibrationEpoch(app);
-        calibrator.restore(Prefs.getCalibrationState(app));
+        loadCar();
+    }
+
+    private void loadCar() {
+        carId = Prefs.activeCarId(app);
+        trip.restore(Prefs.getTripState(app, carId));
+        calibrationEpoch = Prefs.getCalibrationEpoch(app, carId);
+        calibrator.restore(Prefs.getCalibrationState(app, carId));
+    }
+
+    /** True se dalle impostazioni è stata scelta un'altra auto. */
+    public boolean carChanged() {
+        return !Prefs.activeCarId(app).equals(carId);
+    }
+
+    /**
+     * Passa ai dati della nuova auto attiva: il trip e la taratura della vecchia sono già salvati (a ogni pausa
+     * della Home), si caricano quelli nuovi e ci si ricollega al suo adattatore.
+     */
+    public void reloadCar() {
+        saveTrip(); // sull'auto vecchia, per non perdere gli ultimi metri
+        loadCar();
+        speedHistory.reset();
+        restart();
     }
 
     public TripComputer.Summary tripSummary() {
@@ -133,14 +157,14 @@ public final class ObdManager {
     }
 
     private void saveTrip() {
-        Prefs.setTripState(app, trip.serialize());
+        Prefs.setTripState(app, carId, trip.serialize());
         saveCalibration(); // stesso ritmo: tiene anche il punto di partenza del calo di livello
         lastTripSaveMs = SystemClock.elapsedRealtime();
     }
 
     /** Se la taratura è stata azzerata dalle impostazioni, riparte da zero. */
     private void syncCalibrationEpoch() {
-        int epoch = Prefs.getCalibrationEpoch(app);
+        int epoch = Prefs.getCalibrationEpoch(app, carId);
         if (epoch != calibrationEpoch) {
             calibrationEpoch = epoch;
             calibrator.reset();
@@ -154,7 +178,7 @@ public final class ObdManager {
 
     private void saveCalibration() {
         syncCalibrationEpoch();
-        Prefs.setCalibrationState(app, calibrator.serialize());
+        Prefs.setCalibrationState(app, carId, calibrator.serialize());
     }
 
     public void setListener(Listener l) {
@@ -395,9 +419,11 @@ public final class ObdManager {
 
         // Consumo: misurato se la centralina lo fornisce, altrimenti ricavato dall'aria aspirata
         // (MAF se c'è, altrimenti stimata dalla pressione nel collettore).
+        // Con il gasolio dall'aria non si ricava il carburante (troppa aria in eccesso): resta solo la misura della centralina.
+        FuelType fuel = Prefs.getFuelType(app);
         Double lph = v.get(ObdPid.FUEL_RATE);
         Double estimatedLph = null; // stima del modello, prima della taratura
-        if (lph == null) {
+        if (lph == null && fuel.estimatesFromAir()) {
             Double airFlow = v.get(ObdPid.MAF);
             boolean fromMap = false;
             if (airFlow == null && s.rpm != null && s.intakeKpa != null) {
@@ -407,7 +433,7 @@ public final class ObdManager {
                 fromMap = true;
             }
             if (airFlow != null) {
-                lph = FuelEstimator.litersPerHour(airFlow);
+                lph = FuelEstimator.litersPerHour(airFlow, fuel);
                 if (fromMap) { // solo la stima dalla pressione si tara: MAF e consumo della centralina sono misure
                     estimatedLph = lph;
                     if (calibrationOn()) {

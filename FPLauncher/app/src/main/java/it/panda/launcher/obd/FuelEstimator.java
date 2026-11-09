@@ -41,7 +41,12 @@ public final class FuelEstimator {
 
     /** Litri di benzina all'ora a partire dal flusso d'aria in g/s. */
     public static double litersPerHour(double airFlowGs) {
-        return airFlowGs / AIR_FUEL_RATIO / FUEL_DENSITY_G_PER_L * 3600.0;
+        return litersPerHour(airFlowGs, FuelType.PETROL);
+    }
+
+    /** Litri di carburante all'ora a partire dal flusso d'aria in g/s, con rapporto e densità del carburante. */
+    public static double litersPerHour(double airFlowGs, FuelType fuel) {
+        return airFlowGs / fuel.airFuelRatio / fuel.densityGPerL * 3600.0;
     }
 
     /** Aggiunge un intervallo di guida al conteggio del viaggio. */

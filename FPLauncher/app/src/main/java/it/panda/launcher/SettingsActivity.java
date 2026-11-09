@@ -5,13 +5,20 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.Manifest;
 import android.bluetooth.BluetoothManager;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -26,6 +33,7 @@ import java.util.Set;
 import it.panda.launcher.apps.AppEntry;
 import it.panda.launcher.apps.AppLoader;
 import it.panda.launcher.obd.BluetoothPermissions;
+import it.panda.launcher.obd.FuelType;
 import it.panda.launcher.obd.ObdManager;
 
 /**
@@ -36,8 +44,14 @@ import it.panda.launcher.obd.ObdManager;
 public class SettingsActivity extends Activity {
 
     private static final int REQUEST_BT = 1;
+    private static final int REQUEST_STORAGE = 2;
+    private static final String PICTURES = "Pictures\\";
 
     private LinearLayout content;
+    /** Modulo "Nuova auto" aperto, oppure null. */
+    private CarDraft draft;
+    /** Auto di cui si voleva importare le immagini quando è stato chiesto il permesso. */
+    private CarProfile pendingImport;
     private AppLoader appLoader;
 
     @Override
@@ -63,6 +77,10 @@ public class SettingsActivity extends Activity {
 
     private void build() {
         content.removeAllViews();
+        if (draft != null) {
+            buildCarForm();
+            return;
+        }
         buildAppsSection();
         buildDataSection();
         buildRadioSection();
@@ -120,6 +138,7 @@ public class SettingsActivity extends Activity {
                 : ObdManager.lastState() == ObdManager.State.ERROR ? R.color.crit : R.color.muted));
 
         addSubtitle(R.string.pref_obd_adapter);
+        addHintText(getString(R.string.pref_obd_for_car, CarStore.active(this).displayName()));
 
         if (!BluetoothPermissions.canConnect(this)) {
             addHint(R.string.pref_need_permission);
@@ -238,19 +257,39 @@ public class SettingsActivity extends Activity {
 
     private void buildCarSection() {
         addTitle(R.string.pref_car_title);
-        addSubtitle(R.string.pref_engine_title);
-        RadioGroup group = new RadioGroup(this);
-        int current = Prefs.getDisplacementCc(this);
-        int[] cc = {Prefs.CC_12};
-        int[] labels = {R.string.pref_engine_12};
-        for (int i = 0; i < cc.length; i++) {
-            final int value = cc[i];
-            RadioButton rb = radio(getString(labels[i]));
-            group.addView(rb);
-            rb.setChecked(value == current);
-            rb.setOnClickListener(v -> Prefs.setDisplacementCc(this, value));
+        CarProfile active = CarStore.active(this);
+        RadioGroup cars = new RadioGroup(this);
+        for (CarProfile car : CarStore.list(this)) {
+            RadioButton rb = radio(car.displayName());
+            cars.addView(rb);
+            rb.setChecked(car.id.equals(active.id));
+            rb.setOnClickListener(v -> {
+                CarStore.setActive(this, car.id);
+                build();
+            });
         }
-        content.addView(group);
+        content.addView(cars);
+        Button add = addButton(R.string.pref_car_new);
+        add.setOnClickListener(v -> {
+            draft = new CarDraft();
+            build();
+        });
+        if (!active.isBuiltIn()) {
+            Button delete = addButton(R.string.pref_car_delete);
+            delete.setOnClickListener(v -> new AlertDialog.Builder(this)
+                    .setMessage(getString(R.string.pref_car_delete_confirm, active.displayName()))
+                    .setPositiveButton(R.string.reset, (d, w) -> {
+                        CarStore.delete(this, active.id);
+                        build();
+                    })
+                    .setNegativeButton(R.string.cancel, null)
+                    .show());
+        }
+        addHintText(getString(R.string.pref_car_active_hint, active.displayName()));
+        buildCarImages(active);
+
+        addSubtitle(R.string.pref_engine_title);
+        addStepper(R.string.pref_displacement, Prefs.getDisplacementCc(this), 50, 500, 6000, " cm³", v -> Prefs.setDisplacementCc(this, v));
 
         addSubtitle(R.string.pref_gauges_title);
         addStepper(R.string.pref_max_speed, Prefs.getMaxSpeed(this), 10, 60, 400, " km/h", v -> Prefs.setMaxSpeed(this, v));
@@ -259,6 +298,13 @@ public class SettingsActivity extends Activity {
         addStepper(R.string.pref_red_rpm, Prefs.getRedRpm(this), 100, 2000, 12000, " giri/min", v -> Prefs.setRedRpm(this, v));
 
         addSubtitle(R.string.pref_fuel_title);
+        addFuelTypes(Prefs.getFuelType(this), t -> {
+            Prefs.setFuelType(this, t);
+            build(); // il prezzo di partenza e il suggerimento cambiano col carburante
+        });
+        if (!Prefs.getFuelType(this).estimatesFromAir()) {
+            addHint(R.string.pref_fuel_diesel_hint);
+        }
         addSwitch(R.string.pref_calib, Prefs.getFuelCalibration(this), checked -> Prefs.setFuelCalibration(this, checked));
         addStepper(R.string.pref_tank, Prefs.getTankLiters(this), 1, 20, 100, " l", v -> Prefs.setTankLiters(this, v));
         addSwitch(R.string.pref_detailed, Prefs.getDetailedConsumption(this), checked -> Prefs.setDetailedConsumption(this, checked));
@@ -274,6 +320,183 @@ public class SettingsActivity extends Activity {
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show());
+    }
+
+    // ---------------------------------------------------------------- immagini dell'auto
+
+    private void buildCarImages(CarProfile car) {
+        addSubtitle(R.string.pref_car_images);
+        for (CarImages.Kind kind : CarImages.Kind.values()) {
+            boolean custom = CarImages.has(this, car.id, kind);
+            addHintText(getString(R.string.pref_car_image_status, kind.importName,
+                    getString(custom ? R.string.pref_car_image_custom : R.string.pref_car_image_default)));
+        }
+        addHintText(imagesHelp(car.folderName()));
+        Button import_ = addButton(R.string.pref_car_images_import);
+        import_.setOnClickListener(v -> importImages(car));
+    }
+
+    /** Dove mettere i file e di che misura, con l'indicazione di dove compaiono. */
+    private String imagesHelp(String folder) {
+        CarImages.Kind top = CarImages.Kind.TOP;
+        CarImages.Kind side = CarImages.Kind.SIDE;
+        return getString(R.string.car_images_help, PICTURES + (folder.isEmpty() ? "MARCA_MODELLO" : folder),
+                top.recommendedWidth, top.recommendedHeight, side.recommendedWidth, side.recommendedHeight);
+    }
+
+    private String storagePermission() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                ? Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
+    }
+
+    /** Copia le immagini da Pictures\MARCA_MODELLO\ (memoria interna o chiavetta USB). */
+    private void importImages(CarProfile car) {
+        if (checkSelfPermission(storagePermission()) != PackageManager.PERMISSION_GRANTED) {
+            pendingImport = car;
+            requestPermissions(new String[]{storagePermission()}, REQUEST_STORAGE);
+            return;
+        }
+        Toast.makeText(this, R.string.car_import_running, Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            CarImages.Result r = CarImages.importFor(this, car);
+            runOnUiThread(() -> {
+                Toast.makeText(this, importMessage(car, r), Toast.LENGTH_LONG).show();
+                build();
+            });
+        }, "car-images").start();
+    }
+
+    private String importMessage(CarProfile car, CarImages.Result r) {
+        if (!r.folderFound) {
+            return getString(R.string.car_import_no_folder, PICTURES + car.folderName());
+        }
+        StringBuilder b = new StringBuilder();
+        if (!r.imported.isEmpty()) {
+            b.append(getString(R.string.car_import_done, names(r.imported)));
+        }
+        if (!r.missing.isEmpty()) {
+            if (b.length() > 0) {
+                b.append('\n');
+            }
+            b.append(getString(R.string.car_import_missing, names(r.missing)));
+        }
+        return b.toString();
+    }
+
+    private static String names(List<CarImages.Kind> kinds) {
+        StringBuilder b = new StringBuilder();
+        for (CarImages.Kind k : kinds) {
+            if (b.length() > 0) {
+                b.append(", ");
+            }
+            b.append(k.importName);
+        }
+        return b.toString();
+    }
+
+    // ---------------------------------------------------------------- nuova auto
+
+    /** Valori inseriti nel modulo "Nuova auto", prima di crearla. */
+    private static final class CarDraft {
+        String brand = "";
+        String model = "";
+        final CarStore.Settings settings = new CarStore.Settings();
+    }
+
+    private void buildCarForm() {
+        addTitle(R.string.pref_car_new);
+        TextView[] help = new TextView[1];
+        addTextField(R.string.car_brand, draft.brand, v -> {
+            draft.brand = v;
+            help[0].setText(imagesHelp(CarProfile.folderName(draft.brand, draft.model)));
+        });
+        addTextField(R.string.car_model, draft.model, v -> {
+            draft.model = v;
+            help[0].setText(imagesHelp(CarProfile.folderName(draft.brand, draft.model)));
+        });
+        CarStore.Settings s = draft.settings;
+        addSubtitle(R.string.pref_fuel_type);
+        addFuelTypes(s.fuelType, t -> s.fuelType = t);
+        addStepper(R.string.pref_displacement, s.displacementCc, 50, 500, 6000, " cm³", v -> s.displacementCc = v);
+        addStepper(R.string.pref_tank, s.tankLiters, 1, 10, 150, " l", v -> s.tankLiters = v);
+        addStepper(R.string.pref_max_speed, s.maxSpeed, 10, 60, 400, " km/h", v -> s.maxSpeed = v);
+        addStepper(R.string.pref_min_rpm, s.minRpm, 100, 500, 4000, " giri/min", v -> s.minRpm = v);
+        addStepper(R.string.pref_shift_rpm, s.shiftRpm, 100, 2000, 12000, " giri/min", v -> s.shiftRpm = v);
+        addStepper(R.string.pref_red_rpm, s.redRpm, 100, 2000, 12000, " giri/min", v -> s.redRpm = v);
+        help[0] = addHintText(imagesHelp(CarProfile.folderName(draft.brand, draft.model)));
+
+        Button create = addButton(R.string.car_create);
+        create.setOnClickListener(v -> {
+            if (draft.brand.trim().isEmpty() || draft.model.trim().isEmpty()) {
+                Toast.makeText(this, R.string.car_name_required, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            CarStore.create(this, draft.brand, draft.model, draft.settings);
+            draft = null;
+            build();
+        });
+        Button cancel = addButton(R.string.cancel);
+        cancel.setOnClickListener(v -> {
+            draft = null;
+            build();
+        });
+    }
+
+    /** Scelta del carburante: benzina, GPL o gasolio. */
+    private void addFuelTypes(FuelType current, java.util.function.Consumer<FuelType> onPick) {
+        RadioGroup group = new RadioGroup(this);
+        for (FuelType type : FuelType.values()) {
+            RadioButton rb = radio(getString(fuelLabel(type)));
+            group.addView(rb);
+            rb.setChecked(type == current);
+            rb.setOnClickListener(v -> onPick.accept(type));
+        }
+        content.addView(group);
+    }
+
+    private static int fuelLabel(FuelType type) {
+        switch (type) {
+            case LPG:
+                return R.string.fuel_lpg;
+            case DIESEL:
+                return R.string.fuel_diesel;
+            default:
+                return R.string.fuel_petrol;
+        }
+    }
+
+    private void addTextField(int label, String value, java.util.function.Consumer<String> onChange) {
+        addSubtitle(label);
+        EditText field = new EditText(this);
+        field.setSingleLine(true);
+        field.setText(value);
+        field.setTextColor(getColor(R.color.text));
+        field.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        field.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                onChange.accept(s.toString());
+            }
+        });
+        content.addView(field);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (draft != null) {
+            draft = null; // il modulo si chiude senza creare nulla
+            build();
+        } else {
+            super.onBackPressed();
+        }
     }
 
     private String calibrationText() {
@@ -362,6 +585,16 @@ public class SettingsActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_STORAGE) {
+            CarProfile car = pendingImport;
+            pendingImport = null;
+            if (car != null && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                importImages(car);
+            } else {
+                Toast.makeText(this, R.string.car_import_denied, Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
         build();
     }
 
