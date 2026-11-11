@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Panda Launcher</string>
+    <string name="app_name">FIAT Panda Launcher</string>
     <string name="settings_title">Impostazioni launcher</string>
 
     <!-- colonna app -->
@@ -21,6 +21,7 @@
 
     <!-- pagine -->
     <string name="page_car">Auto</string>
+
 
     <!-- avvisi -->
     <string name="pref_gauges_title">Tachimetro e giri</string>
@@ -87,18 +88,36 @@
     <string name="pref_obd_adapter">Adattatore</string>
     <string name="pref_obd_none">Nessun adattatore</string>
     <string name="pref_obd_no_devices">Nessun dispositivo Bluetooth associato.</string>
-    <string name="pref_radio_title">Radio</string>
-    <string name="radio_idle">Radio</string>
+    <string name="pref_radio_title">Impostazioni radio</string>
+    <string name="radio_idle">Radio FM</string>
+    <string name="pref_radio_control">Controllo delle stazioni</string>
+    <string name="pref_radio_control_hint">Scorri a destra o a sinistra sulla scala del sintonizzatore per cambiare stazione. Scegli il metodo che funziona con la tua radio: prima controlla quali sono disponibili, poi provalo con i tasti qui sotto.</string>
+    <string name="pref_radio_detect">Controlla la radio</string>
+    <string name="pref_radio_need_app">Scegli prima l\'app radio.</string>
+    <string name="pref_radio_method">Metodo di controllo</string>
+    <string name="pref_radio_test_prev">◀ Stazione precedente</string>
+    <string name="pref_radio_test_next">Stazione successiva ▶</string>
+    <string name="pref_radio_test_ok">Comando inviato</string>
+    <string name="pref_radio_test_fail">Comando non inviato: metodo non disponibile ora</string>
+    <string name="radio_control_unset">Scegli il metodo di controllo nelle impostazioni radio</string>
+    <string name="radio_control_failed">La radio non ha ricevuto il comando</string>
+    <string name="method_none">Disattivato (la radio si apre soltanto)</string>
+    <string name="method_session">Sessione multimediale dell\'app radio</string>
+    <string name="method_button_pkg">Tasto multimediale all\'app radio</string>
+    <string name="method_key_system">Tasto multimediale di sistema</string>
+    <string name="method_found">trovato</string>
+    <string name="method_missing">non trovato</string>
+    <string name="radio_detect_no_access">manca l\'accesso alle notifiche</string>
+    <string name="radio_detect_session_ok">l\'app radio ha una sessione attiva</string>
+    <string name="radio_detect_session_none">nessuna sessione: avvia la radio e riprova</string>
+    <string name="radio_detect_button_ok">l\'app radio riceve i tasti multimediali</string>
+    <string name="radio_detect_button_none">l\'app radio non dichiara di riceverli</string>
+    <string name="radio_detect_key_unknown">non verificabile: va provato con i tasti</string>
     <string name="pref_radio_access_on">Accesso alle notifiche: concesso</string>
     <string name="pref_radio_access_off">Accesso alle notifiche: da concedere (serve per leggere la frequenza della radio)</string>
     <string name="pref_radio_grant">Concedi accesso alle notifiche</string>
     <string name="pref_radio_app">App radio (si apre toccando la radio nella Home): %1$s</string>
     <string name="pref_obd_delay">Ritardo connessione</string>
-    <string name="pref_obd_for_car">Adattatore dell\'auto: %1$s</string>
-    <string name="pref_car_new">Nuova auto</string>
-    <string name="pref_car_delete">Elimina questa auto</string>
-    <string name="pref_car_delete_confirm">Eliminare %1$s con i suoi dati (trip, taratura, adattatore, immagini)?</string>
-    <string name="pref_car_active_hint">Le impostazioni qui sotto valgono per: %1$s</string>
     <string name="pref_displacement">Cilindrata</string>
     <string name="pref_fuel_type">Carburante</string>
     <string name="fuel_petrol">Benzina</string>
@@ -116,10 +135,6 @@
     <string name="car_import_done">Importate: %1$s</string>
     <string name="car_import_missing">Non trovate: %1$s</string>
     <string name="car_import_denied">Permesso di lettura negato: non posso leggere le immagini</string>
-    <string name="car_brand">Marca</string>
-    <string name="car_model">Modello</string>
-    <string name="car_create">Crea auto</string>
-    <string name="car_name_required">Inserisci marca e modello</string>
     <string name="obd_waiting">attesa</string>
     <string name="pref_radio_app_none">non scelta</string>
     <string name="pref_radio_app_choose">Scegli app radio</string>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Home: colonna app a sinistra, a destra l'area principale.
      Area principale: barra in alto (ora, data, temperatura),
-     poi tre pagine (Auto 3D, Dati auto, Consumi) e in basso le frecce per cambiare pagina. -->
+     poi le pagine (Home, Dati auto; con l'OBD spento solo la radio) e in basso le frecce per cambiare pagina. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -147,6 +147,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:visibility="invisible" />
+
+            <!-- Pagina radio: l'unica pagina quando l'OBD è spento -->
+            <include
+                android:id="@+id/page_radio"
+                layout="@layout/page_radio"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
 
             <!-- puntini creati dal codice, uno per pagina -->
             <LinearLayout

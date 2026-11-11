@@ -2,7 +2,6 @@ package it.panda.launcher;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.Manifest;
@@ -12,12 +11,9 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.Toast;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
@@ -48,11 +44,11 @@ public class SettingsActivity extends Activity {
     private static final String PICTURES = "Pictures\\";
 
     private LinearLayout content;
-    /** Modulo "Nuova auto" aperto, oppure null. */
-    private CarDraft draft;
     /** Auto di cui si voleva importare le immagini quando è stato chiesto il permesso. */
     private CarProfile pendingImport;
     private AppLoader appLoader;
+    /** Esito dell'ultimo "Controlla la radio", null se non ancora eseguito. */
+    private List<it.panda.launcher.radio.RadioControl.Detection> radioReport;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,10 +73,6 @@ public class SettingsActivity extends Activity {
 
     private void build() {
         content.removeAllViews();
-        if (draft != null) {
-            buildCarForm();
-            return;
-        }
         buildAppsSection();
         buildDataSection();
         buildRadioSection();
@@ -138,7 +130,6 @@ public class SettingsActivity extends Activity {
                 : ObdManager.lastState() == ObdManager.State.ERROR ? R.color.crit : R.color.muted));
 
         addSubtitle(R.string.pref_obd_adapter);
-        addHintText(getString(R.string.pref_obd_for_car, CarStore.active(this).displayName()));
 
         if (!BluetoothPermissions.canConnect(this)) {
             addHint(R.string.pref_need_permission);
@@ -199,6 +190,101 @@ public class SettingsActivity extends Activity {
     private void buildRadioSection() {
         addTitle(R.string.pref_radio_title);
         buildRadioAccess();
+        buildRadioControl();
+    }
+
+    /** Come comandare le stazioni: controllo dei metodi disponibili, scelta in tendina e prova. */
+    private void buildRadioControl() {
+        addSubtitle(R.string.pref_radio_control);
+        addHint(R.string.pref_radio_control_hint);
+        android.content.ComponentName app = Prefs.getRadioApp(this);
+        if (app == null) {
+            addHint(R.string.pref_radio_need_app);
+            return;
+        }
+        Button detect = addButton(R.string.pref_radio_detect);
+        detect.setOnClickListener(v -> {
+            radioReport = it.panda.launcher.radio.RadioControl.detect(this, app.getPackageName());
+            build();
+        });
+        if (radioReport != null) {
+            for (it.panda.launcher.radio.RadioControl.Detection d : radioReport) {
+                TextView line = addHintText(getString(methodLabel(d.method)) + ": "
+                        + getString(d.found ? R.string.method_found : R.string.method_missing)
+                        + " (" + getString(d.noteRes) + ")");
+                line.setTextColor(getColor(d.found ? R.color.ok : R.color.muted));
+            }
+        }
+
+        addSubtitle(R.string.pref_radio_method);
+        it.panda.launcher.radio.RadioControl.Method[] methods = it.panda.launcher.radio.RadioControl.Method.values();
+        String[] labels = new String[methods.length];
+        for (int i = 0; i < methods.length; i++) {
+            labels[i] = getString(methodLabel(methods[i]));
+        }
+        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<String>(
+                this, android.R.layout.simple_spinner_dropdown_item, labels) {
+            @Override
+            public View getView(int position, View convertView, android.view.ViewGroup parent) {
+                return tint(super.getView(position, convertView, parent), false);
+            }
+
+            @Override
+            public View getDropDownView(int position, View convertView, android.view.ViewGroup parent) {
+                return tint(super.getDropDownView(position, convertView, parent), true);
+            }
+
+            private View tint(View row, boolean dropDown) {
+                TextView t = (TextView) row;
+                t.setTextColor(getColor(R.color.text));
+                t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+                if (dropDown) {
+                    t.setBackgroundColor(getColor(R.color.panel));
+                    t.setPadding(dp(16), dp(14), dp(16), dp(14));
+                }
+                return row;
+            }
+        };
+        android.widget.Spinner spinner = new android.widget.Spinner(this);
+        spinner.setAdapter(adapter);
+        spinner.setPopupBackgroundResource(R.color.panel);
+        int selected = it.panda.launcher.radio.RadioControl.current(this).ordinal();
+        spinner.setSelection(selected);
+        spinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                it.panda.launcher.radio.RadioControl.setCurrent(SettingsActivity.this, methods[position]);
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+            }
+        });
+        content.addView(spinner);
+
+        // prova dei comandi con il metodo scelto
+        Button prev = addButton(R.string.pref_radio_test_prev);
+        prev.setOnClickListener(v -> testRadio(it.panda.launcher.radio.RadioControl.Command.PREVIOUS));
+        Button next = addButton(R.string.pref_radio_test_next);
+        next.setOnClickListener(v -> testRadio(it.panda.launcher.radio.RadioControl.Command.NEXT));
+    }
+
+    private void testRadio(it.panda.launcher.radio.RadioControl.Command command) {
+        boolean sent = it.panda.launcher.radio.RadioControl.send(this, command);
+        Toast.makeText(this, sent ? R.string.pref_radio_test_ok : R.string.pref_radio_test_fail, Toast.LENGTH_SHORT).show();
+    }
+
+    private static int methodLabel(it.panda.launcher.radio.RadioControl.Method method) {
+        switch (method) {
+            case MEDIA_SESSION:
+                return R.string.method_session;
+            case MEDIA_BUTTON_PACKAGE:
+                return R.string.method_button_pkg;
+            case MEDIA_KEY_SYSTEM:
+                return R.string.method_key_system;
+            default:
+                return R.string.method_none;
+        }
     }
 
     /** Per la radio serve l'accesso alle notifiche, che si concede dalle impostazioni di sistema. */
@@ -257,36 +343,7 @@ public class SettingsActivity extends Activity {
 
     private void buildCarSection() {
         addTitle(R.string.pref_car_title);
-        CarProfile active = CarStore.active(this);
-        RadioGroup cars = new RadioGroup(this);
-        for (CarProfile car : CarStore.list(this)) {
-            RadioButton rb = radio(car.displayName());
-            cars.addView(rb);
-            rb.setChecked(car.id.equals(active.id));
-            rb.setOnClickListener(v -> {
-                CarStore.setActive(this, car.id);
-                build();
-            });
-        }
-        content.addView(cars);
-        Button add = addButton(R.string.pref_car_new);
-        add.setOnClickListener(v -> {
-            draft = new CarDraft();
-            build();
-        });
-        if (!active.isBuiltIn()) {
-            Button delete = addButton(R.string.pref_car_delete);
-            delete.setOnClickListener(v -> new AlertDialog.Builder(this)
-                    .setMessage(getString(R.string.pref_car_delete_confirm, active.displayName()))
-                    .setPositiveButton(R.string.reset, (d, w) -> {
-                        CarStore.delete(this, active.id);
-                        build();
-                    })
-                    .setNegativeButton(R.string.cancel, null)
-                    .show());
-        }
-        addHintText(getString(R.string.pref_car_active_hint, active.displayName()));
-        buildCarImages(active);
+        buildCarImages(CarStore.active());
 
         addSubtitle(R.string.pref_engine_title);
         addStepper(R.string.pref_displacement, Prefs.getDisplacementCc(this), 50, 500, 6000, " cm³", v -> Prefs.setDisplacementCc(this, v));
@@ -394,54 +451,6 @@ public class SettingsActivity extends Activity {
         return b.toString();
     }
 
-    // ---------------------------------------------------------------- nuova auto
-
-    /** Valori inseriti nel modulo "Nuova auto", prima di crearla. */
-    private static final class CarDraft {
-        String brand = "";
-        String model = "";
-        final CarStore.Settings settings = new CarStore.Settings();
-    }
-
-    private void buildCarForm() {
-        addTitle(R.string.pref_car_new);
-        TextView[] help = new TextView[1];
-        addTextField(R.string.car_brand, draft.brand, v -> {
-            draft.brand = v;
-            help[0].setText(imagesHelp(CarProfile.folderName(draft.brand, draft.model)));
-        });
-        addTextField(R.string.car_model, draft.model, v -> {
-            draft.model = v;
-            help[0].setText(imagesHelp(CarProfile.folderName(draft.brand, draft.model)));
-        });
-        CarStore.Settings s = draft.settings;
-        addSubtitle(R.string.pref_fuel_type);
-        addFuelTypes(s.fuelType, t -> s.fuelType = t);
-        addStepper(R.string.pref_displacement, s.displacementCc, 50, 500, 6000, " cm³", v -> s.displacementCc = v);
-        addStepper(R.string.pref_tank, s.tankLiters, 1, 10, 150, " l", v -> s.tankLiters = v);
-        addStepper(R.string.pref_max_speed, s.maxSpeed, 10, 60, 400, " km/h", v -> s.maxSpeed = v);
-        addStepper(R.string.pref_min_rpm, s.minRpm, 100, 500, 4000, " giri/min", v -> s.minRpm = v);
-        addStepper(R.string.pref_shift_rpm, s.shiftRpm, 100, 2000, 12000, " giri/min", v -> s.shiftRpm = v);
-        addStepper(R.string.pref_red_rpm, s.redRpm, 100, 2000, 12000, " giri/min", v -> s.redRpm = v);
-        help[0] = addHintText(imagesHelp(CarProfile.folderName(draft.brand, draft.model)));
-
-        Button create = addButton(R.string.car_create);
-        create.setOnClickListener(v -> {
-            if (draft.brand.trim().isEmpty() || draft.model.trim().isEmpty()) {
-                Toast.makeText(this, R.string.car_name_required, Toast.LENGTH_SHORT).show();
-                return;
-            }
-            CarStore.create(this, draft.brand, draft.model, draft.settings);
-            draft = null;
-            build();
-        });
-        Button cancel = addButton(R.string.cancel);
-        cancel.setOnClickListener(v -> {
-            draft = null;
-            build();
-        });
-    }
-
     /** Scelta del carburante: benzina, GPL o gasolio. */
     private void addFuelTypes(FuelType current, java.util.function.Consumer<FuelType> onPick) {
         RadioGroup group = new RadioGroup(this);
@@ -462,40 +471,6 @@ public class SettingsActivity extends Activity {
                 return R.string.fuel_diesel;
             default:
                 return R.string.fuel_petrol;
-        }
-    }
-
-    private void addTextField(int label, String value, java.util.function.Consumer<String> onChange) {
-        addSubtitle(label);
-        EditText field = new EditText(this);
-        field.setSingleLine(true);
-        field.setText(value);
-        field.setTextColor(getColor(R.color.text));
-        field.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        field.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                onChange.accept(s.toString());
-            }
-        });
-        content.addView(field);
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (draft != null) {
-            draft = null; // il modulo si chiude senza creare nulla
-            build();
-        } else {
-            super.onBackPressed();
         }
     }
 

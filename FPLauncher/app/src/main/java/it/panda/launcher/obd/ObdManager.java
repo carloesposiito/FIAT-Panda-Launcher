@@ -120,22 +120,6 @@ public final class ObdManager {
         calibrator.restore(Prefs.getCalibrationState(app, carId));
     }
 
-    /** True se dalle impostazioni è stata scelta un'altra auto. */
-    public boolean carChanged() {
-        return !Prefs.activeCarId(app).equals(carId);
-    }
-
-    /**
-     * Passa ai dati della nuova auto attiva: il trip e la taratura della vecchia sono già salvati (a ogni pausa
-     * della Home), si caricano quelli nuovi e ci si ricollega al suo adattatore.
-     */
-    public void reloadCar() {
-        saveTrip(); // sull'auto vecchia, per non perdere gli ultimi metri
-        loadCar();
-        speedHistory.reset();
-        restart();
-    }
-
     public TripComputer.Summary tripSummary() {
         return trip.summary();
     }

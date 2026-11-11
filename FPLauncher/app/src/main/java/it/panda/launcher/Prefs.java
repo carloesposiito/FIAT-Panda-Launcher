@@ -17,6 +17,7 @@ public final class Prefs {
     private static final String KEY_FAVORITES = "favorite_apps";
     private static final String KEY_APP_SLOTS = "app_slots";
     private static final String KEY_RADIO_APP = "radio_app";
+    private static final String KEY_RADIO_CONTROL = "radio_control";
     static final String KEY_FUEL_TYPE = "fuel_type";
     private static final String KEY_OBD_DELAY = "obd_delay_s";
     private static final String KEY_TRIP = "trip_state";
@@ -46,17 +47,17 @@ public final class Prefs {
 
     /** Id dell'auto attiva (per chi non è nel pacchetto del launcher). */
     public static String activeCarId(Context c) {
-        return CarStore.activeId(c);
+        return CarStore.activeId();
     }
 
-    /** Le preferenze del launcher, per CarStore. */
+    /** Le preferenze del launcher. */
     static SharedPreferences shared(Context c) {
         return c.getApplicationContext().getSharedPreferences(FILE, Context.MODE_PRIVATE);
     }
 
     /** Chiave di un valore dell'auto attiva. */
     private static String k(Context c, String key) {
-        return CarProfile.keyFor(CarStore.activeId(c), key);
+        return CarProfile.keyFor(CarStore.activeId(), key);
     }
 
     /** OBD attivo; se mai impostato, attivo solo se era già stato scelto un adattatore. */
@@ -195,7 +196,7 @@ public final class Prefs {
     // sull'auto a cui appartengono, anche se nel frattempo dalle impostazioni è stata scelta un'altra.
 
     public static String getCalibrationState(Context c) {
-        return getCalibrationState(c, CarStore.activeId(c));
+        return getCalibrationState(c, CarStore.activeId());
     }
 
     public static String getCalibrationState(Context c, String carId) {
@@ -208,7 +209,7 @@ public final class Prefs {
 
     /** Cresce a ogni azzeramento dalle impostazioni: chi tiene la taratura in memoria riparte da zero. */
     public static int getCalibrationEpoch(Context c) {
-        return getCalibrationEpoch(c, CarStore.activeId(c));
+        return getCalibrationEpoch(c, CarStore.activeId());
     }
 
     public static int getCalibrationEpoch(Context c, String carId) {
@@ -257,6 +258,15 @@ public final class Prefs {
 
     public static void setRadioApp(Context c, ComponentName app) {
         sp(c).edit().putString(KEY_RADIO_APP, app == null ? null : app.flattenToString()).apply();
+    }
+
+    /** Metodo scelto per comandare la radio (nome di RadioControl.Method); mai scelto = NONE. */
+    public static String getRadioControl(Context c) {
+        return sp(c).getString(KEY_RADIO_CONTROL, "NONE");
+    }
+
+    public static void setRadioControl(Context c, String method) {
+        sp(c).edit().putString(KEY_RADIO_CONTROL, method).apply();
     }
 
     /** Quante icone entrano nella colonna (lo calcola la Home, lo mostra l'editor). 0 = non ancora noto. */

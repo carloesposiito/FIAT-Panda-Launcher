@@ -21,14 +21,6 @@ final class CarProfile {
         this.model = clean(model);
     }
 
-    boolean isBuiltIn() {
-        return DEFAULT_ID.equals(id);
-    }
-
-    String displayName() {
-        return (brand + " " + model).trim();
-    }
-
     /** Cartella dove cercare le immagini: Pictures\MARCA_MODELLO. */
     String folderName() {
         return folderName(brand, model);

@@ -86,6 +86,7 @@ public class LauncherActivity extends Activity
     private View homeRadioBlock;
     private ImageView homeRadioArt;
     private TextView homeRadioTitle;
+    private it.panda.launcher.ui.RadioTunerView homeRadioDial;
     private it.panda.launcher.radio.RadioWatcher radio;
 
     // dati ai lati della foto dell'auto
@@ -352,9 +353,26 @@ public class LauncherActivity extends Activity
         applyAvailability();
     }
 
+    /**
+     * Con l'OBD spento (e senza dati simulati) l'unica pagina è la radio; altrimenti Home e Dati auto.
+     * Le pagine dell'auto tornano com'erano riattivando l'OBD.
+     */
+    private void showRadioMode(boolean radioOnly) {
+        View radioPage = findViewById(R.id.page_radio);
+        radioPage.setVisibility(radioOnly ? View.VISIBLE : View.GONE);
+        for (int i = 0; i < pages.length; i++) {
+            pages[i].setVisibility(!radioOnly && i == page ? View.VISIBLE : View.INVISIBLE);
+        }
+    }
+
+    /** Pagine tra cui scorrere: Home e Dati auto con l'OBD attivo, altrimenti nessuna (c'è solo la radio, anche con i dati simulati). */
+    private int pageCount() {
+        return obdEnabled ? pages.length : 1; // 1: la radio da sola, niente scorrimento
+    }
+
     /** Pagina successiva (dir = 1) o precedente (dir = -1), girando in tondo. */
     private int step(int dir) {
-        return (page + dir + pages.length) % pages.length;
+        return (page + dir + pageCount()) % pageCount();
     }
 
     /**
@@ -368,6 +386,11 @@ public class LauncherActivity extends Activity
             showNoLiveData();
         }
 
+        // la pagina salvata resta, così riattivando l'OBD si torna lì
+        showRadioMode(!obdEnabled);
+        // metodo "Disattivato": nessuno scorrimento, resta solo il tocco che apre l'app radio
+        homeRadioDial.setSwipeEnabled(
+                it.panda.launcher.radio.RadioControl.current(this) != it.panda.launcher.radio.RadioControl.Method.NONE);
         updatePageDots();
 
         if (obd != null) { // il consumo dettagliato si accende e spegne dalle impostazioni
@@ -377,13 +400,13 @@ public class LauncherActivity extends Activity
         if (!demo) {
             radio.start();
         } else {
-            radio.stop();
+            radio.stop(); // con i dati simulati la radio la mostra demoTick, su una stazione finta
         }
     }
 
     /** Cambia pagina con una breve animazione; dir = 1 avanti (entra da destra), -1 indietro. */
     private void showPage(int next, int dir) {
-        if (next == page) {
+        if (next == page || !obdEnabled) { // con l'OBD spento c'è solo la pagina radio
             return;
         }
         View out = pages[page];
@@ -407,6 +430,7 @@ public class LauncherActivity extends Activity
     }
 
     private void updatePageDots() {
+        pageDots.setVisibility(pageCount() > 1 ? View.VISIBLE : View.GONE); // una sola pagina: niente puntini
         for (int i = 0; i < pageDots.getChildCount(); i++) {
             pageDots.getChildAt(i).setSelected(i == page);
         }
@@ -420,6 +444,19 @@ public class LauncherActivity extends Activity
         homeRadioTitle = findViewById(R.id.home_radio_title);
         radio = new it.panda.launcher.radio.RadioWatcher(this, this::showRadio);
         homeRadioBlock.setOnClickListener(v -> openRadioApp());
+        homeRadioDial = findViewById(R.id.home_radio_dial);
+        findViewById(R.id.page_radio).setOnClickListener(v -> openRadioApp());
+        homeRadioDial.setStepListener(direction -> {
+            if (it.panda.launcher.radio.RadioControl.current(this) == it.panda.launcher.radio.RadioControl.Method.NONE) {
+                return;
+            }
+            boolean sent = it.panda.launcher.radio.RadioControl.send(this, direction > 0
+                    ? it.panda.launcher.radio.RadioControl.Command.NEXT
+                    : it.panda.launcher.radio.RadioControl.Command.PREVIOUS);
+            if (!sent) {
+                Toast.makeText(this, R.string.radio_control_failed, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     /** Sezione radio: frequenza dalla notifica dell'app radio, oppure il segnaposto se non c'è nulla da mostrare. */
@@ -427,16 +464,18 @@ public class LauncherActivity extends Activity
         String frequency = info == null ? null : it.panda.launcher.radio.RadioWatcher.frequencyOf(info);
         // senza frequenza (radio spenta o accesso alle notifiche mancante, che si legge nelle impostazioni) resta "Radio"
         homeRadioArt.setAlpha(frequency == null ? 0.35f : 0.6f);
-        homeRadioTitle.setText(frequency != null ? frequency : getString(R.string.radio_idle));
+        String shown = frequency != null ? frequency : getString(R.string.radio_idle);
+        homeRadioTitle.setText(shown);
+        homeRadioDial.setFrequency(frequency);
     }
 
     // ================================================================ ora e data
 
     private void setupClock() {
         date = findViewById(R.id.date);
-        date.setTypeface(Fonts.display(this));
+        date.setTypeface(Fonts.bold(this));
         clock = findViewById(R.id.clock);
-        clock.setTypeface(Fonts.display(this));
+        clock.setTypeface(Fonts.bold(this));
         IntentFilter f = new IntentFilter();
         f.addAction(Intent.ACTION_TIME_TICK);
         f.addAction(Intent.ACTION_TIME_CHANGED);
@@ -466,7 +505,7 @@ public class LauncherActivity extends Activity
 
     /** Immagini dell'auto attiva: quelle importate, altrimenti le originali della Panda. Si ricaricano solo se cambiano. */
     private void applyCarImages() {
-        String id = CarStore.activeId(this);
+        String id = CarStore.activeId();
         String key = id + "/" + CarImages.stamp(this, id);
         if (key.equals(carImagesKey)) {
             return;
@@ -731,10 +770,13 @@ public class LauncherActivity extends Activity
         public void run() {
             double t = (SystemClock.elapsedRealtime() - demoStartMs) / 1000.0;
             showSnapshot(demoSnapshot(t, demoFaults));
-            showRadio(new it.panda.launcher.radio.RadioWatcher.Info("FM 98,5 MHz", "Radio Deejay"), true);
+            showRadio(new it.panda.launcher.radio.RadioWatcher.Info("FM " + DEMO_FREQUENCY, "Radio Demo"), true);
             demoHandler.postDelayed(this, 500);
         }
     };
+
+    /** Frequenza mostrata dalla radio con i dati simulati. */
+    private static final String DEMO_FREQUENCY = "99 MHz";
 
     /** Dopo "Leggi allarmi" in demo compaiono spia e codici finti. */
     private boolean demoFaults;
@@ -981,19 +1023,14 @@ public class LauncherActivity extends Activity
         }
         updateDate();
         fillAppColumn(); // le app scelte possono essere cambiate nelle impostazioni
-        // se nelle impostazioni è stata scelta un'altra auto: suoi trip, taratura e adattatore, e le sue immagini
-        boolean carChanged = obd.carChanged();
-        if (carChanged) {
-            obd.reloadCar();
-        }
-        applyCarImages();
+        applyCarImages(); // le immagini possono essere state importate nelle impostazioni
         lastSpeedHistory = obd.speedHistory();
         showTrip(obd.tripSummary());
         // se nelle impostazioni è stato scelto un altro adattatore, ricollegati
         String address = Prefs.getObdAddress(this);
         boolean wasEnabled = obdEnabled;
         applyAvailability();
-        if (pausedOnce && !carChanged && (!java.util.Objects.equals(obdAddressAtPause, address) || wasEnabled != obdEnabled)) {
+        if (pausedOnce && (!java.util.Objects.equals(obdAddressAtPause, address) || wasEnabled != obdEnabled)) {
             obd.restart();
         }
     }

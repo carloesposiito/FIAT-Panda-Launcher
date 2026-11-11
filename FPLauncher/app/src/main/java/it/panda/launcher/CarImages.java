@@ -78,17 +78,6 @@ final class CarImages {
         file(c, carId, kind).delete();
     }
 
-    static void deleteAll(Context c, String carId) {
-        File dir = CarStore.imagesDir(c, carId);
-        File[] files = dir.listFiles();
-        if (files != null) {
-            for (File f : files) {
-                f.delete();
-            }
-        }
-        dir.delete();
-    }
-
     // ---------------------------------------------------------------- importazione
 
     /** Cerca Pictures\MARCA_MODELLO\ in ogni memoria e copia le immagini trovate. Va chiamata fuori dal thread principale. */
